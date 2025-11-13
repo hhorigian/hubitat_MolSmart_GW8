@@ -1,0 +1,17 @@
+{
+ "packageName":"MolSmart GW8-RF",
+ "author":"VH",
+ "version":"1.0",
+ "minimumHEVersion":"2.3.7.100",
+ "dateReleased":"2025-11-14",
+ "releaseNotes":"1.0 - First Version.",
+ "drivers": [
+  {
+     "id":"76d618fd-e894-4b55-ba50-741b77285eda",
+     "name":"MolSmart GW8-RF",
+     "namespace":"TRATO",
+     "location":"https://raw.githubusercontent.com/hhorigian/hubitat_MolSmart_GW8/refs/heads/main/RF/Hubitat_TRATO_MolSmart_GW8_RF.groovy",
+     "required":true
+  }
+  ]
+}
