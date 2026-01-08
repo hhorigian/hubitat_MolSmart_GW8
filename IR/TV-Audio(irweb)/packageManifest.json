@@ -1,0 +1,17 @@
+{
+ "packageName":"MolSmart - GW8 - TV e Audio(irweb)",
+ "author":"VH",
+ "version":"1.0",
+ "minimumHEVersion":"2.3.7.100",
+ "dateReleased":"2025-11-14",
+ "releaseNotes":"1.0 - First Version.",
+ "drivers": [
+  {
+     "id":"6d4b9580-2770-425f-b384-b6e61424e1b1",
+     "name":"MolSmart - GW8 - TV e Audio(irweb)",
+     "namespace":"TRATO",
+     "location":"https://raw.githubusercontent.com/hhorigian/hubitat_MolSmart_GW8/refs/heads/main/IR/TV-Audio(irweb)/Hubitat_TRATO_MolSmart_GW8_IR_TV(irweb).groovy",
+     "required":true
+  }
+  ]
+}

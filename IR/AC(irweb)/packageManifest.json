@@ -1,0 +1,17 @@
+{
+ "packageName":"MolSmart - GW8 - AC (irweb)",
+ "author":"VH",
+ "version":"1.0",
+ "minimumHEVersion":"2.3.7.100",
+ "dateReleased":"2025-11-14",
+ "releaseNotes":"1.0 - First Version.",
+ "drivers": [
+  {
+     "id":"0073250b-c9f1-4aaa-9cf2-460cbae6661d",
+     "name":"MolSmart - GW8 - AC(irweb)",
+     "namespace":"TRATO",
+     "location":"https://raw.githubusercontent.com/hhorigian/hubitat_MolSmart_GW8/refs/heads/main/IR/AC(irweb)/Hubitat_TRATO_MolSmart_GW8_IR_AC(irweb).groovy",
+     "required":true
+  }
+  ]
+}

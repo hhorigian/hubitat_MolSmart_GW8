@@ -1,0 +1,17 @@
+{
+ "packageName":"MolSmart - GW8 - Learning",
+ "author":"VH",
+ "version":"1.0",
+ "minimumHEVersion":"2.3.7.100",
+ "dateReleased":"2025-11-14",
+ "releaseNotes":"1.0 - First Version.",
+ "drivers": [
+  {
+     "id":"577e0f3f-afaf-41f8-9efe-4f76b145f468",
+     "name":"MolSmart - GW8 - Learning",
+     "namespace":"TRATO",
+     "location":"https://raw.githubusercontent.com/hhorigian/hubitat_MolSmart_GW8/refs/heads/main/IR/Learning/Hubitat_TRATO_MolSmart_GW8_IR_Learning.groovy",
+     "required":true
+  }
+  ]
+}
