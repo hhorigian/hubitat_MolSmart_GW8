@@ -3,8 +3,8 @@
  "author":"VH",
  "version":"1.0",
  "minimumHEVersion":"2.3.7.100",
- "dateReleased":"2025-11-14",
- "releaseNotes":"1.0 - First Version.",
+ "dateReleased":"2026-01-26",
+ "releaseNotes":"1.1 - Minor functions added",
  "drivers": [
   {
      "id":"76d618fd-e894-4b55-ba50-741b77285eda",
