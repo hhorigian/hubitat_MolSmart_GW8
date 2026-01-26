@@ -1,10 +1,10 @@
 {
  "packageName":"MolSmart - GW8 - Learning",
  "author":"VH",
- "version":"1.0",
+ "version":"1.1",
  "minimumHEVersion":"2.3.7.100",
- "dateReleased":"2025-11-14",
- "releaseNotes":"1.0 - First Version.",
+ "dateReleased":"2025-01-26",
+ "releaseNotes":"1.1 - Updated Functions.",
  "drivers": [
   {
      "id":"577e0f3f-afaf-41f8-9efe-4f76b145f468",
