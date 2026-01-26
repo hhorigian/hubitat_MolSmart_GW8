@@ -21,7 +21,9 @@
  *
  *            --- Driver para GW8 - IR - para AC --- usando os controles do ir.molsmart.com.br
  *
- *              V.1.0   11/11/2024 - V1 para trazer os controles remotos prontos. 
+ *            V.1.0   11/11/2024 - V1 para trazer os controles remotos prontos. 
+ *            1.1 - 26/1/2026 - Fixed Online Status for GW8. Added Version number to driver. Added Memory used in GW8 to status. 
+ 
 */
 
 metadata {
@@ -89,21 +91,32 @@ command "setdefaults"
 command "healthCheckNow"
 
     // NOVOS atributos de saúde/conectividade
-    attribute "gw3Online", "ENUM", ONLINE_ENUM
     attribute "lastHealthAt", "STRING"
     attribute "healthLatencyMs", "NUMBER"
 
     // NOVO: versão do GW3 (6 caracteres após "Version: ")
-    attribute "gw3Version", "STRING"            
+    attribute "gw8Version", "STRING"      
+
+    // NOVO: versão do GW3 (6 caracteres após "Version: ")
+    attribute "gw8Online", "STRING"
+    attribute "gw8StoragePct", "NUMBER"
+    attribute "gw8StoragePctText", "STRING"      
+            
+    // === NOVO: Health Check ===
+    input name: "enableHealthCheck", type: "bool",   title: "Ativar verificação de online (HTTP /info)", defaultValue: true
+    input name: "healthCheckMins",   type: "number", title: "Intervalo do health check (min)", defaultValue: 30, range: "1..1440"
+      
+    
       
   }      
 }
 
     import groovy.transform.Field
     import groovy.json.JsonOutput
-
     @Field static final String DRIVER = "by TRATO"
     @Field static final String USER_GUIDE = "https://github.com/hhorigian/hubitat_MolSmart_GW3_IR/tree/main/TV"
+	@Field static final String DRIVER_VERSION = "1.1"
+
 
     String fmtHelpInfo(String str) {
     String prefLink = "<a href='${USER_GUIDE}' target='_blank'>${str}<br><div style='font-size: 70%;'>${DRIVER}</div></a>"
@@ -254,10 +267,12 @@ def createTemps() {
 def installed()
 {
 	log.warn "installed..."
-    sendEvent(name:"gw3Online", value:"unknown")    
 	off()
     initialize()
+    sendEvent(name: "driverVersion", value: DRIVER_VERSION)
+    sendEvent(name:"gw8Online", value:"unknown")
 
+    
 }
 
 
@@ -268,6 +283,10 @@ def updated()
     AtualizaDadosGW3()   
     off()
 	if (logEnable) runIn(1800,logsOff)
+    sendEvent(name: "driverVersion", value: DRIVER_VERSION)
+	if (!device.currentValue("gw8Online")) sendEvent(name:"gw8Online", value:"unknown")    
+    
+    
     
 }
 
@@ -286,6 +305,9 @@ def initialize() {
     state.currentip = ""  
 	setdefaults()
     off()
+	if (!device.currentValue("gw8Online")) sendEvent(name:"gw8Online", value:"unknown")     
+    sendEvent(name: "driverVersion", value: DRIVER_VERSION)
+    
 }
 
 def setdefaults() {
@@ -1295,7 +1317,7 @@ def healthPoll() {
   if (!enableHealthCheck) return
   String ip = (settings.molIPAddress ?: "").trim()
   if (!ip) return
-  String uri = "http://${ip}/info"
+  String uri = "http://${ip}/info?type=1"
   Long started = now()
   Map params = [ uri: uri, timeout: 5 ]
   try {
@@ -1318,11 +1340,11 @@ void healthPollCB(resp, data) {
 
   if (st && st >= 200 && st <= 299 && body?.toString()?.contains("MolSmart Device Info")) {
     // Online
-    if (device.currentValue("gw3Online") != "online") sendEvent(name:"gw3Online", value:"online", isStateChange:true)
+    if (device.currentValue("gw8Online") != "online") sendEvent(name:"gw8Online", value:"online", isStateChange:true)
     sendEvent(name:"healthLatencyMs", value: dt as Long)
     sendEvent(name:"lastHealthAt", value: stamp)
 
-    // === NOVO: extrair "Version: X" e publicar 6 chars em gw3Version ===
+    // === NOVO: extrair "Version: X" e publicar 6 chars em gw8Version ===
     try {
       String txt = body?.toString() ?: ""
       // procura linha iniciando com "Version:"
@@ -1331,8 +1353,8 @@ void healthPollCB(resp, data) {
         String verFull = (m.group(1) ?: "").trim()
         String ver6 = (verFull.length() >= 6) ? verFull.substring(0, 6) : verFull
         if (ver6) {
-          sendEvent(name:"gw3Version", value: ver6, isStateChange:true)
-          if (logEnable) log.debug "Versão detectada: '${verFull}' -> gw3Version='${ver6}'"
+          sendEvent(name:"gw8Version", value: ver6, isStateChange:true)
+          if (logEnable) log.debug "Versão detectada: '${verFull}' -> gw8Version='${ver6}'"
         }
       } else if (logEnable) {
         log.debug "Versão não encontrada no corpo do /info."
@@ -1341,10 +1363,42 @@ void healthPollCB(resp, data) {
       if (logEnable) log.warn "Falha ao extrair versão: ${e.message}"
     }
 
+    // === NOVO: extrair "Remote storage: used/total" e publicar % em gw8StoragePct ===
+    try {
+      String txt2 = body?.toString() ?: ""
+      def ms = (txt2 =~ /(?im)^\s*Remote storage:\s*(\d+)\s*\/\s*(\d+)/)
+      if (ms.find()) {
+        BigDecimal used  = (ms.group(1) as BigDecimal)
+        BigDecimal total = (ms.group(2) as BigDecimal)
+
+        if (total > 0) {
+          BigDecimal pct = (used * 100G) / total
+          // arredonda para 1 casa (você pode trocar para 0 se preferir inteiro)
+          BigDecimal pct1 = pct.setScale(1, BigDecimal.ROUND_HALF_UP)
+
+          //sendEvent(name: "gw8StoragePct", value: pct1, unit: "%", isStateChange: true)
+		  sendEvent(name: "gw8StoragePctText", value: "${pct1} %", isStateChange: true)
+     
+
+          if (logEnable) log.debug "Memoria Utilizada: ${used}/${total} -> ${pct1}%"
+        } else {
+         //sendEvent(name: "gw8StoragePct", value: null)
+		 sendEvent(name: "gw8StoragePctText", value: "${pct1} %", isStateChange: true)            
+        }
+      } else if (logEnable) {
+        log.debug "Remote storage não encontrado no corpo do /info."
+      }
+    } catch (e) {
+      if (logEnable) log.warn "Falha ao extrair Remote storage: ${e.message}"
+    }
+
+      
+      
+      
     if (logEnable) log.debug "Health OK in ${dt} ms"
   } else {
     // Offline
-    if (device.currentValue("gw3Online") != "offline") sendEvent(name:"gw3Online", value:"offline", isStateChange:true)
+    if (device.currentValue("gw8Online") != "offline") sendEvent(name:"gw8Online", value:"offline", isStateChange:true)
     sendEvent(name:"healthLatencyMs", value: null)
     sendEvent(name:"lastHealthAt", value: stamp)
     if (logEnable) log.warn "Health FAIL (status=${st})"
