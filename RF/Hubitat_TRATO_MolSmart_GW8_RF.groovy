@@ -23,12 +23,14 @@
  *   +++  Versões ++++
  *        1.0 - 11/11/2025 - V1
  *        1.1 - 26/1/2026 - Fixed Online Status for GW8. Added Version number to driver. Added Memory used in GW8 to status. 
+ *        1.2 - 27/1/2026 - Added Command: refreshRemoteList, List GW8 Remote Controls. 
+
  */
 
 import groovy.transform.Field
 
 @Field static final List<String> ONLINE_ENUM = ["online","offline","unknown"]
-@Field static final String DRIVER_VERSION = "1.1"
+@Field static final String DRIVER_VERSION = "1.2"
 
 
 metadata {
@@ -71,6 +73,15 @@ metadata {
     attribute "gw8StoragePct", "NUMBER"
     attribute "gw8StoragePctText", "STRING"
       
+// comandos novos
+command "refreshRemoteList"
+
+// atributos novos (pra aparecer na tela do device)
+attribute "gw8RemoteCount", "NUMBER"
+attribute "gw8RemoteList", "STRING"   // texto formatado “CID - Nome”
+attribute "gw8RemoteJson", "STRING"   // json completo (opcional, ajuda debug/Rule Machine)
+      
+      
       
   }
 
@@ -108,7 +119,6 @@ def installed() {
   // Atributos novos default
   sendEvent(name:"gw8Online", value:"unknown")
   sendEvent(name: "driverVersion", value: DRIVER_VERSION)
-
   initialize()
 }
 
@@ -118,6 +128,7 @@ def updated() {
   // Garante atributo
   if (!device.currentValue("gw8Online")) sendEvent(name:"gw8Online", value:"unknown")
   sendEvent(name: "driverVersion", value: DRIVER_VERSION)
+  refreshRemoteList()  
     
   initialize()
   if (logEnable) runIn(1800, logsOff)
@@ -541,6 +552,68 @@ def childOffSafe(data) {
     try { child.parse([[name:"switch", value:"off"]]) } catch (ignored) {}
   }
 }
+
+
+import groovy.json.JsonOutput
+
+def refreshRemoteList() {
+  try {
+    def url = "http://${molIPAddress}/remoteData"
+    def bodyObj = [type: 2]
+    def params = [
+      uri: url,
+      requestContentType: "application/json",
+      contentType: "application/json",
+      body: JsonOutput.toJson(bodyObj),
+      timeout: 10
+    ]
+    asynchttpPost("remoteListCB", params)
+  } catch (e) {
+    if (logEnable) log.warn "refreshRemoteList() falhou: ${e.message}"
+  }
+}
+
+
+import groovy.json.JsonSlurper
+
+def remoteListCB(resp, data) {
+  try {
+    if (resp?.status != 200) {
+      if (logEnable) log.warn "remoteListCB HTTP ${resp?.status}"
+      return
+    }
+
+    def parsed = new JsonSlurper().parseText(resp.data ?: "[]")
+
+    // esperado: array de remotes, cada remote tem id e name:contentReference[oaicite:3]{index=3}
+List<Map> remotes = []
+if (parsed instanceof List) {
+  remotes = parsed.findAll { r ->
+    r?.rcId == 51        // 
+  }.collect { r ->
+    [
+      id  : r?.id,
+      name: (r?.name ?: "")
+    ]
+  }
+}
+
+
+    // texto pra UI do Hubitat (fácil de ler)
+    String pretty = remotes.collect { "${it.id} - ${it.name}" }.join("\n")
+
+    sendEvent(name: "gw8RemoteCount", value: remotes.size(), isStateChange: true)
+    //sendEvent(name: "gw8RemoteList",  value: pretty,        isStateChange: true)
+    sendEvent(name: "gw8RemoteJson",  value: JsonOutput.toJson(remotes), isStateChange: true)
+
+    // opcional: guardar em state se você quiser reaproveitar depois
+    state.gw8Remotes = remotes
+
+  } catch (e) {
+    if (logEnable) log.warn "remoteListCB parse falhou: ${e.message}"
+  }
+}
+
 
 /* ======================= Util ======================= */
 private Integer clamp(int v, int lo, int hi) { Math.max(lo, Math.min(hi, v)) }
