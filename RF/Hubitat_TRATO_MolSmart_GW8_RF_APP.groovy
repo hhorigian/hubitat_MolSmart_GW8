@@ -36,8 +36,8 @@ def pageMain() {
         }
 
         section("Credenciais do GW8 (Opcionais. Default vazio)") {
-            input "gw8User", "text", title: "Usuário", required: false, defaultValue: "", submitOnChange: true
-            input "gw8Pass", "password", title: "Senha", required: false, defaultValue: "", submitOnChange: true
+            input "gw8User", "text", title: "Usuário", required: true, defaultValue: "admin", submitOnChange: true
+            input "gw8Pass", "password", title: "Senha", required: true, defaultValue: "12345678", submitOnChange: true
         }
 
         section("Driver de Cortina (já existente)") {
