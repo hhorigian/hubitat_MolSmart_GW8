@@ -1,10 +1,10 @@
 {
  "packageName":"MolSmart GW8-RF",
  "author":"VH",
- "version":"1.2",
+ "version":"1.3",
  "minimumHEVersion":"2.4.1.151",
- "dateReleased":"2026-01-28",
- "releaseNotes":"Added APP for Control Imports from GW8",
+ "dateReleased":"2026-02-19",
+ "releaseNotes":"Fixed Open and Close brutal.",
  "apps": [
   {
      "id":"1581aecf-c106-490b-81da-b24ff3fe02eb",
