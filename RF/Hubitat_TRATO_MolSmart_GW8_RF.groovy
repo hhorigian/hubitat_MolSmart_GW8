@@ -24,6 +24,7 @@
  *        1.0 - 11/11/2025 - V1
  *        1.1 - 26/1/2026 - Fixed Online Status for GW8. Added Version number to driver. Added Memory used in GW8 to status. 
  *        1.2 - 27/1/2026 - Added Command: refreshRemoteList, List GW8 Remote Controls. 
+ *        1.3 - 19/2/2026 - Fixed 100% open / Closed without waiting for percentage. Force Open and Force Close.  
 
  */
 
@@ -165,9 +166,9 @@ def Stop() { EnviaComando(2); finalizeStop(estimateNow()) }
 
 /* ======================= Capabilities de Shade (mantidos) ======================= */
 
-def open()                { moveTo(100) }
+def open()                { moveTo(100, true) }
 
-def close()               { moveTo(0) }
+def close()               { moveTo(0, true) }
 
 def pause()               { stopPositionChange() }
 
@@ -190,17 +191,18 @@ def startPositionChange(direction) {
 def setPosition(Number pos) { moveTo(clamp((pos as int), 0, 100)) }
 
 /* ======================= Lógica de Tempo/Slider (mantidos) ======================= */
-private moveTo(Integer target) {
+private moveTo(Integer target, Boolean force = false) {
   Integer current = estimateNow()
   Integer tol = (tolerance ?: 3) as int
-  if (Math.abs(target - current) <= tol) {
+  if (!force && Math.abs(target - current) <= tol) {
     if (logEnable) log.debug "Dentro da tolerância (current=${current}, target=${target})"
     finalizeStop(target)
     return
   }
+
   String dir = (target > current) ? "up" : "down"
   Integer totalMs = (dir == "up" ? (openTimeMs ?: 12000) : (closeTimeMs ?: 12000)) as int
-  BigDecimal fraction = (Math.abs(target - current) / 100.0)
+  BigDecimal fraction = (force && (target in [0,100])) ? 1.0 : (Math.abs(target - current) / 100.0)
   Integer runMs = Math.max(50, (int)Math.round(totalMs * fraction))
   if (logEnable) log.debug "moveTo: current=${current}, target=${target}, dir=${dir}, runMs=${runMs}"
   sendPositionNow(current) // evita salto visual
