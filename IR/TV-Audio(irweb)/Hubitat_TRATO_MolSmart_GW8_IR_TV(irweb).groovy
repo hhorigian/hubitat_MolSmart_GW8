@@ -15,8 +15,10 @@
  *
  *
  *            --- Driver para GW8 - IR - para TV ---
- *            V.1.0   11/11/2025 - V1 
- *            1.1 - 26/1/2026 - Fixed Online Status for GW8. Added Version number to driver. Added Memory used in GW8 to status. 
+ *           V.1.0   11/11/2025 - V1 
+ *           1.1 - 26/1/2026 - Fixed Online Status for GW8. Added Version number to driver. Added Memory used in GW8 to status. 
+*            1.2 - 26/2/2026 - Changed Command Names to reflect the SamsungTV remote Control commands (ArrowLeft, Arrow Right, Arrow Up, Arrow Down, Enter, etc). 
+*            1.3 - 10/3/2025 - Added appOpenByName command to open apps by name (Netflix, YouTube and Amazon Prime).
 *
  *
  *
@@ -40,15 +42,17 @@ metadata {
     	attribute "TipoControle", "string" 
     	attribute "Formato", "string"       
 
-    // NOVO: versão do GW3 (6 caracteres após "Version: ")
+    // NOVO: versão do GW8 (6 caracteres após "Version: ")
     attribute "gw8Version", "STRING"      
 
-    // NOVO: versão do GW3 (6 caracteres após "Version: ")
+    // NOVO: versão do GW8 (6 caracteres após "Version: ")
     attribute "gw8Online", "STRING"
     attribute "gw8StoragePct", "NUMBER"
     attribute "gw8StoragePctText", "STRING"      
       
-      
+
+
+
 command "GetRemoteDATA"
 command "cleanvars"  
 command "poweroff"
@@ -59,10 +63,11 @@ command "back"
 command "menu"
 command "hdmi"
 command "hdmi"
-command "left"
-command "right"
-command "up"
-command "down"
+command "arrowLeft"
+command "arrowRight"
+command "arrowUp"
+command "arrowDown"
+command "enter"
 command "confirm"
 command "exit"
 command "home"
@@ -95,23 +100,27 @@ command "btnBIRsend"
 command "btnCIRsend"
 command "btnDIRsend"
 command "playIRsend"
-command "pauseIRsend"
-command "nextIRsend"
-command "guideIRsend"
-command "infoIRsend" 
-command "toolsIRsend" 
-command "smarthubIRsend" 
-command "previouschannelIRsend" 
-command "backIRsend"	  
+command "pause"
+command "next"
+command "guide"
+command "info" 
+command "tools" 
+command "smarthub" 
+command "previousChannel" 
+command "back"	  
 command "recreateButtons"
 command "removeButtons"   
 command "healthCheckNow"      
-		  
-  }
-      
-      
+command "stop" 
+command "sourceToggle"
+command "appOpenByName", ["string"] 
+command "fastBack" 
+command "fastForward" 
 
 
+
+
+}
 }
 
     import groovy.transform.Field
@@ -126,7 +135,7 @@ command "healthCheckNow"
 
     @Field static final String DRIVER1 = "IR MolSmart"
     @Field static final String USER_GUIDE1 = "https://ir.molsmart.com.br/"
-	@Field static final String DRIVER_VERSION = "1.1"
+	@Field static final String DRIVER_VERSION = "1.2"
 
 
     String fmtHelpInfo1(String str) {
@@ -179,80 +188,70 @@ def GetRemoteDATA()
                 sendEvent(name: "GetRemoteData", value: "Sucess")
                 //log.debug "RESULT = " + resp.data
       
-    sendEvent(name: "Controle", value: resp.data.name)   
-    sendEvent(name: "TipoControle", value: resp.data.type)   
-    sendEvent(name: "Formato", value: resp.data.conversor)                   
+                sendEvent(name: "Controle", value: resp.data.name)   
+                sendEvent(name: "TipoControle", value: resp.data.type)   
+                sendEvent(name: "Formato", value: resp.data.conversor)                   
                 
-    state.encoding = resp.data.conversor
-    state.OFFIRsend  = resp.data.functions.function[0]
-    state.OnIRsend  = resp.data.functions.function[1]
-    state.muteIRsend  = resp.data.functions.function[2]             
-    state.sourceIRsend  = resp.data.functions.function[3]     
-    state.backIRsend  = resp.data.functions.function[4]     
-    state.menuIRsend  = resp.data.functions.function[5]     
-    state.hdmi1IRsend  = resp.data.functions.function[6]     
-    state.hdmi2IRsend  = resp.data.functions.function[7]     
-    state.leftIRsend  = resp.data.functions.function[8]     
-    state.rightIRsend  = resp.data.functions.function[9]     
-    state.upIRsend  = resp.data.functions.function[10]     
-    state.downIRsend  = resp.data.functions.function[11]     
-    state.confirmIRsend  = resp.data.functions.function[12]     
-    state.exitIRsend  = resp.data.functions.function[13]     
-    state.homeIRsend  = resp.data.functions.function[14]                 
-    state.ChanUpIRsend  = resp.data.functions.function[15]
-    state.ChanDownIRsend  = resp.data.functions.function[16]     
-    state.VolUpIRsend  = resp.data.functions.function[17]     
-    state.VolDownIRsend  = resp.data.functions.function[18]     
-    state.num0IRsend  = resp.data.functions.function[19]     
-    state.num1IRsend  = resp.data.functions.function[20]     
-    state.num2IRsend  = resp.data.functions.function[21]     
-    state.num3IRsend  = resp.data.functions.function[22]     
-    state.num4IRsend  = resp.data.functions.function[23]     
-    state.num5IRsend  = resp.data.functions.function[24]     
-    state.num6IRsend  = resp.data.functions.function[25]     
-    state.num7IRsend  = resp.data.functions.function[26]     
-    state.num8IRsend  = resp.data.functions.function[27]     
-    state.num9IRsend  = resp.data.functions.function[28]     
-    state.btnextra1IRsend  = resp.data.functions.function[29]     
-    state.btnextra2IRsend  = resp.data.functions.function[30]     
-    state.btnextra3IRsend  = resp.data.functions.function[31]     
-    state.amazonIRsend  = resp.data.functions.function[32]     
-    state.youtubeIRsend  = resp.data.functions.function[33]     
-    state.netflixIRsend  = resp.data.functions.function[34]     
-    state.btnextra4IRsend  = resp.data.functions.function[35]     
-    state.btnextra5IRsend  = resp.data.functions.function[36]     
-    state.btnextra6IRsend  = resp.data.functions.function[37]     
-    state.btnextra7IRsend  = resp.data.functions.function[38]   
-    state.btnAIRsend  = resp.data.functions.function[39] 
-    state.btnBIRsend  = resp.data.functions.function[40] 
-    state.btnCIRsend  = resp.data.functions.function[41] 
-    state.btnDIRsend  = resp.data.functions.function[42] 
-    state.playIRsend  = resp.data.functions.function[43] 
-    state.pauseIRsend  = resp.data.functions.function[44] 
-    state.nextIRsend  = resp.data.functions.function[45] 
-    state.guideIRsend  = resp.data.functions.function[46]                    
-    state.infoIRsend   = resp.data.functions.function[47] 
-    state.toolsIRsend  = resp.data.functions.function[48] 
-    state.smarthubIRsend  = resp.data.functions.function[49] 
-    state.previouschannelIRsend  = resp.data.functions.function[50] 
-    state.backIRsend  = resp.data.functions.function[51]
-             
-    }
-            
-	}
+                state.encoding = resp.data.conversor
+                state.OFFIRsend  = resp.data.functions.function[0]
+                state.OnIRsend  = resp.data.functions.function[1]
+                state.muteIRsend  = resp.data.functions.function[2]             
+                state.sourceIRsend  = resp.data.functions.function[3]     
+                state.backIRsend  = resp.data.functions.function[4]     
+                state.menuIRsend  = resp.data.functions.function[5]     
+                state.hdmi1IRsend  = resp.data.functions.function[6]     
+                state.hdmi2IRsend  = resp.data.functions.function[7]     
+                state.leftIRsend  = resp.data.functions.function[8]     
+                state.rightIRsend  = resp.data.functions.function[9]     
+                state.upIRsend  = resp.data.functions.function[10]     
+                state.downIRsend  = resp.data.functions.function[11]     
+                state.enterIRsend  = resp.data.functions.function[12]     
+                state.exitIRsend  = resp.data.functions.function[13]     
+                state.homeIRsend  = resp.data.functions.function[14]                 
+                state.ChanUpIRsend  = resp.data.functions.function[15]
+                state.ChanDownIRsend  = resp.data.functions.function[16]     
+                state.VolUpIRsend  = resp.data.functions.function[17]     
+                state.VolDownIRsend  = resp.data.functions.function[18]     
+                state.num0IRsend  = resp.data.functions.function[19]     
+                state.num1IRsend  = resp.data.functions.function[20]     
+                state.num2IRsend  = resp.data.functions.function[21]     
+                state.num3IRsend  = resp.data.functions.function[22]     
+                state.num4IRsend  = resp.data.functions.function[23]     
+                state.num5IRsend  = resp.data.functions.function[24]     
+                state.num6IRsend  = resp.data.functions.function[25]     
+                state.num7IRsend  = resp.data.functions.function[26]     
+                state.num8IRsend  = resp.data.functions.function[27]     
+                state.num9IRsend  = resp.data.functions.function[28]     
+                state.btnextra1IRsend  = resp.data.functions.function[29]     
+                state.btnextra2IRsend  = resp.data.functions.function[30]     
+                state.btnextra3IRsend  = resp.data.functions.function[31]     
+                state.amazonIRsend  = resp.data.functions.function[32]     
+                state.youtubeIRsend  = resp.data.functions.function[33]     
+                state.netflixIRsend  = resp.data.functions.function[34]     
+                state.btnextra4IRsend  = resp.data.functions.function[35]     
+                state.btnextra5IRsend  = resp.data.functions.function[36]     
+                state.btnextra6IRsend  = resp.data.functions.function[37]     
+                state.btnextra7IRsend  = resp.data.functions.function[38]   
+                state.btnAIRsend  = resp.data.functions.function[39] 
+                state.btnBIRsend  = resp.data.functions.function[40] 
+                state.btnCIRsend  = resp.data.functions.function[41] 
+                state.btnDIRsend  = resp.data.functions.function[42] 
+                state.play  = resp.data.functions.function[43] 
+                state.pause  = resp.data.functions.function[44] 
+                state.next  = resp.data.functions.function[45] 
+                state.guide  = resp.data.functions.function[46]                    
+                state.info   = resp.data.functions.function[47] 
+                state.tools  = resp.data.functions.function[48] 
+                state.smarthub  = resp.data.functions.function[49] 
+                state.previousChannel  = resp.data.functions.function[50] 
+                state.backIRsend  = resp.data.functions.function[51]
+            }
+        }
     } catch (Exception e) {
-        log.warn "Get Remote Control Info failed: ${e.message}"
-    }    
-
+    }
 }
-
-def cleanvars()  //Usada para limpar todos os states e controles aprendidos. 
-{
-//state.remove()
-  state.clear() 
-  AtualizaDadosGW3()  
-}
-
+    
+    
 def installed()
 {   
     log.debug "installed()"
@@ -263,10 +262,10 @@ def installed()
 
 def updated()
 { 
-        if (!device.currentValue("gw3Online")) sendEvent(name:"gw3Online", value:"unknown")
+        if (!device.currentValue("gw8Online")) sendEvent(name:"gw8Online", value:"unknown")
     sendEvent(name:"numberOfButtons", value:52)    
     log.debug "updated()"
-    AtualizaDadosGW3()  
+    AtualizaDadosGW8()  
 	if (!device.currentValue("gw8Online")) sendEvent(name:"gw8Online", value:"unknown")    
     if (logEnable) runIn(1800,logsOff)
     if (createButtonsOnSave) createOrUpdateChildButtons(true)
@@ -276,7 +275,7 @@ def updated()
 }
 
 //Get Device info and set as state to use during driver.
-def AtualizaDadosGW3() {
+def AtualizaDadosGW8() {
     state.currentip = settings.molIPAddress
     state.serialNum = settings.serialNum
     state.verifyCode = settings.verifyCode
@@ -319,11 +318,11 @@ def push(pushed) {
         case 5 : menu(); break
         case 6 : hdmi1(); break
         case 7 : hdmi2(); break                
-        case 8 : left(); break
-        case 9 : right(); break
-        case 10: up(); break
-        case 11: down(); break
-        case 12: confirm(); break
+        case 8 : arrowLeft(); break
+        case 9 : arrowRight(); break
+        case 10: arrowUp(); break
+        case 11: arrowDown(); break
+        case 12: enter(); break
         case 13: exit(); break
         case 14: home(); break
         case 18: channelUp(); break
@@ -344,8 +343,8 @@ def push(pushed) {
         case 34: btnextra2(); break
         case 35: btnextra3(); break
         case 38: appAmazonPrime(); break
-        case 39: appYouTube(); break
-        case 40: appNetflix(); break    
+        case 39: appyoutube(); break
+        case 40: appnetflix(); break    
         case 41: btnextra4(); break    
         case 42: btnextra5(); break    
         case 43: btnextra6(); break    
@@ -354,14 +353,14 @@ def push(pushed) {
         case 46: btnBIRsend(); break    
         case 47: btnCIRsend(); break    
         case 48: btnDIRsend(); break    
-        case 49: playIRsend(); break    
-        case 50: pauseIRsend(); break    
-        case 51: nextIRsend(); break    
-        case 52: guideIRsend(); break            
-        case 53: infoIRsend(); break 
-        case 54: toolsIRsend(); break 
-        case 55: smarthubIRsend(); break 
-        case 56: previouschannelIRsend(); break 
+        case 49: play(); break    
+        case 50: pause(); break    
+        case 51: next(); break    
+        case 52: guide(); break            
+        case 53: info(); break 
+        case 54: tools(); break 
+        case 55: smarthub(); break 
+        case 56: previousChannel(); break 
         case 57: backIRsend(); break  
         case 58: poweroff(); break
 		
@@ -401,11 +400,21 @@ def source(){
     EnviaComando(ircode)    
 }
 
+def input(){
+    source()
+}
+
+
 //Botão #4 para dashboard
 def back(){
 	sendEvent(name: "action", value: "back")
     def ircode = state.backIRsend
     EnviaComando(ircode)    
+}
+
+
+def "fastBack"(){
+    back()    
 }
 
 //Botão #5 para dashboard
@@ -433,14 +442,14 @@ def hdmi2(){
 
 
 //Botão #8 para dashboard
-def left(){
+def arrowLeft(){
     sendEvent(name: "action", value: "left")
     def ircode =   state.leftIRsend
     EnviaComando(ircode)
 }
 
 //Botão #9 para dashboard
-def right(){
+def arrowRight(){
     sendEvent(name: "action", value: "right")
      def ircode =  state.rightIRsend
     EnviaComando(ircode)
@@ -449,14 +458,14 @@ def right(){
 
 
 //Botão #10 para dashboard
-def up(){
+def arrowUp(){
     sendEvent(name: "action", value: "up")
     def ircode =  state.upIRsend
     EnviaComando(ircode)
 }
 
 //Botão #11 para dashboard
-def down(){
+def arrowDown(){
     sendEvent(name: "action", value: "down")
     def ircode =  state.downIRsend
     EnviaComando(ircode)
@@ -465,10 +474,16 @@ def down(){
 //Botão #12 para dashboard
 def confirm(){
     sendEvent(name: "action", value: "confirm")
-    def ircode =  state.confirmIRsend
+    def ircode =  state.enterIRsend
     EnviaComando(ircode)
 }
 
+//Botão #12 para dashboard
+def enter(){
+    sendEvent(name: "action", value: "confirm")
+    def ircode =  state.enterIRsend
+    EnviaComando(ircode)
+}
 
 //Botão #13 para dashboard
 def exit(){
@@ -617,6 +632,25 @@ def appAmazonPrime(){
     EnviaComando(ircode)
 }
 
+
+def appOpenByName (appnamevalue) {
+    if (appnamevalue == "Netflix") {
+        sendEvent(name: "input", value: "netflix")
+        appnetflix()
+    } else if (appnamevalue == "YouTube") {
+        sendEvent(name: "input", value: "youtube")
+        appyoutube()
+    } else if (appnamevalue == "Amazon Prime") {
+        sendEvent(name: "input", value: "amazon")
+        appAmazonPrime()
+    } else {
+        log.warn "App name not recognized for appOpenByName: ${appnamevalue}"
+        return
+    }
+
+}
+
+
 //Botão #39 para dashboard
 def appyoutube(){
     sendEvent(name: "input", value: "youtube")
@@ -690,67 +724,62 @@ def btnDIRsend(){
 }
 
 //Botão #49 para dashboard
-def playIRsend(){
-    sendEvent(name: "action", value: "playIRsend")
-    def ircode =  state.playIRsend
+def play(){
+    sendEvent(name: "action", value: "play")
+    def ircode =  state.play
     EnviaComando(ircode)
 }
 
 //Botão #50 para dashboard
-def pauseIRsend(){
-    sendEvent(name: "action", value: "pauseIRsend")
-    def ircode =  state.pauseIRsend
+def pause(){
+    sendEvent(name: "action", value: "pause")
+    def ircode =  state.pause
     EnviaComando(ircode)
 }
 
 //Botão #51 para dashboard
-def nextIRsend(){
-    sendEvent(name: "action", value: "nextIRsend")
-    def ircode =  state.nextIRsend
+def next(){
+    sendEvent(name: "action", value: "next")
+    def ircode =  state.next
     EnviaComando(ircode)
 }
 
 //Botão #52 para dashboard
-def guideIRsend(){
-    sendEvent(name: "action", value: "guideIRsend")
-    def ircode =  state.guideIRsend
+def guide(){
+    sendEvent(name: "action", value: "guide")
+    def ircode =  state.guide
     EnviaComando(ircode)
 }
 
 //Botão #53 para dashboard
-def infoIRsend(){
-    sendEvent(name: "action", value: "infoIRsend")
-    def ircode =  state.infoIRsend
+def info(){
+    sendEvent(name: "action", value: "info")
+    def ircode =  state.info
     EnviaComando(ircode)
 }
 
 //Botão #54 para dashboard
-def toolsIRsend(){
-    sendEvent(name: "action", value: "toolsIRsend")
-    def ircode =  state.toolsIRsend
+def tools(){
+    sendEvent(name: "action", value: "tools")
+    def ircode =  state.tools
     EnviaComando(ircode)
 }
 
 //Botão #55 para dashboard
-def smarthubIRsend(){
-    sendEvent(name: "action", value: "smarthubIRsend")
-    def ircode =  state.smarthubIRsend
+def smarthub(){
+    sendEvent(name: "action", value: "smarthub")
+    def ircode =  state.smarthub
     EnviaComando(ircode)
 }
 
 //Botão #56 para dashboard
-def previouschannelIRsend(){
-    sendEvent(name: "action", value: "previouschannelIRsend")
-    def ircode =  state.previouschannelIRsend
+def previousChannel(){
+    sendEvent(name: "action", value: "previousChannel")
+    def ircode =  state.previousChannel
     EnviaComando(ircode)
 }
 
-//Botão #57 para dashboard
-def backIRsend(){
-    sendEvent(name: "action", value: "backIRsend")
-    def ircode =  state.backIRsend
-    EnviaComando(ircode)
-}
+
 
       
 
@@ -783,9 +812,9 @@ def EnviaComando(button) {
     // params: give only a 'uri' so Hubitat won't rebuild/encode the query
     Map params = [ uri: fullUrl, timeout: (settings.timeoutSec ?: 7) as int ]
     log.info "Params = " + params
-	
+	log.info "Botão Enviado: " + button
         try {
-            asynchttpPost('gw3PostCallback', params, [cmd: button])
+            asynchttpPost('gw8cPostCallback', params, [cmd: button])
         } catch (e) {
             log.warn "${device.displayName} Async POST scheduling failed: ${e.message}"
     }
@@ -793,7 +822,7 @@ def EnviaComando(button) {
 
 
 
-void gw3PostCallback(resp, data) {
+void gw8PostCallback(resp, data) {
     String cmd = data?.cmd
     try {
         if (resp?.status in 200..299) {
@@ -961,11 +990,11 @@ import groovy.transform.Field
   [label:"TV - Menu",                handler:"menu"],
   [label:"TV - HDMI 1",              handler:"hdmi1"],
   [label:"TV - HDMI 2",              handler:"hdmi2"],
-  [label:"TV - Left",                handler:"left"],
-  [label:"TV - Right",               handler:"right"],
-  [label:"TV - Up",                  handler:"up"],
-  [label:"TV - Down",                handler:"down"],
-  [label:"TV - OK/Confirm",          handler:"confirm"],
+  [label:"TV - Left",                handler:"arrowLeft"],
+  [label:"TV - Right",               handler:"arrowRight"],
+  [label:"TV - Up",                  handler:"arrowUp"],
+  [label:"TV - Down",                handler:"arrowDown"],
+  [label:"TV - OK/Confirm",          handler:"enter"],
   [label:"TV - Exit",                handler:"exit"],
   [label:"TV - Home",                handler:"home"],
   [label:"TV - Channel Up",          handler:"channelUp"],
@@ -996,14 +1025,14 @@ import groovy.transform.Field
   [label:"TV - B IR",                handler:"btnBIRsend"],
   [label:"TV - C IR",                handler:"btnCIRsend"],
   [label:"TV - D IR",                handler:"btnDIRsend"],
-  [label:"TV - Play",                handler:"playIRsend"],
-  [label:"TV - Pause",               handler:"pauseIRsend"],
-  [label:"TV - Next",                handler:"nextIRsend"],
-  [label:"TV - Guide",               handler:"guideIRsend"],
-  [label:"TV - Info",                handler:"infoIRsend"],
-  [label:"TV - Tools",               handler:"toolsIRsend"],
-  [label:"TV - SmartHub",            handler:"smarthubIRsend"],
-  [label:"TV - Previous Channel",    handler:"previouschannelIRsend"],
+  [label:"TV - Play",                handler:"play"],
+  [label:"TV - Pause",               handler:"pause"],
+  [label:"TV - Next",                handler:"next"],
+  [label:"TV - Guide",               handler:"guide"],
+  [label:"TV - Info",                handler:"info"],
+  [label:"TV - Tools",               handler:"tools"],
+  [label:"TV - SmartHub",            handler:"smarthub"],
+  [label:"TV - Previous Channel",    handler:"previousChannel"],
   [label:"TV - Back (IR)",           handler:"backIRsend"]
 ]
 
