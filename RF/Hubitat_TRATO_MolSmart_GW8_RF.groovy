@@ -25,13 +25,14 @@
  *        1.1 - 26/1/2026 - Fixed Online Status for GW8. Added Version number to driver. Added Memory used in GW8 to status. 
  *        1.2 - 27/1/2026 - Added Command: refreshRemoteList, List GW8 Remote Controls. 
  *        1.3 - 19/2/2026 - Fixed 100% open / Closed without waiting for percentage. Force Open and Force Close.  
+ *        1.4 - 11/3/2026 - Added PostCallback to know if command was sent successfull via http. 
 
  */
 
 import groovy.transform.Field
 
 @Field static final List<String> ONLINE_ENUM = ["online","offline","unknown"]
-@Field static final String DRIVER_VERSION = "1.2"
+@Field static final String DRIVER_VERSION = "1.4"
 
 
 metadata {
@@ -73,6 +74,9 @@ metadata {
     attribute "gw8Online", "STRING"
     attribute "gw8StoragePct", "NUMBER"
     attribute "gw8StoragePctText", "STRING"
+
+	attribute "lastResponseCode", "NUMBER"
+	attribute "lastHttpResult", "STRING"      
       
 // comandos novos
 command "refreshRemoteList"
@@ -323,19 +327,41 @@ def EnviaComando(button) {
 }
 
 void gw8PostCallback(resp, data) {
-  String cmd = "${data?.cmd}"
-  try {
-    if (resp?.status in 200..299) {
-      if (logEnable) log.debug "POST OK (async) cmd=${cmd} status=${resp?.status}"
-      state.ultimamensagem = "Resposta OK"
-    } else {
-      log.warn "POST error (async) status=${resp?.status} cmd=${cmd}"
-      state.ultimamensagem = "Erro no envio do comando"
+
+    String cmd = data?.cmd
+    Integer code = resp?.status as Integer
+
+    try {
+
+        if (code in 200..299) {
+
+            logDebug "POST OK cmd=${cmd} status=${code}"
+
+            sendEvent(name: "lastResponseCode", value: code)
+            sendEvent(name: "lastHttpResult", value: "${code} OK")
+
+            state.ultimamensagem = "Resposta OK (${code})"
+
+        } else {
+
+            logWarn "POST ERROR cmd=${cmd} status=${code}"
+
+            sendEvent(name: "lastResponseCode", value: code ?: 0)
+            sendEvent(name: "lastHttpResult", value: "${code} ERROR")
+
+            state.ultimamensagem = "Erro HTTP (${code})"
+        }
+
     }
-  } catch (e) {
-    log.warn "Async callback exception: ${e.message} (cmd=${cmd})"
-    state.errormessage = e.message
-  }
+    catch (e) {
+
+        logWarn "Async callback exception: ${e.message}"
+
+        sendEvent(name: "lastResponseCode", value: -1)
+        sendEvent(name: "lastHttpResult", value: "EXCEPTION")
+
+        state.errormessage = e.message
+    }
 }
 
 /* ======= Callbacks para agendamento em segundos (compat sem runInMillis) ======= */
@@ -483,10 +509,15 @@ def healthCheckNow() { healthPoll() }
 /* ======================= CHILD BUTTONS (Subir / Parar / Descer) ======================= */
 
 @Field static final List<Map> CHILD_BUTTON_DEFS = [
-  [label:"Cortina - Subir",  cmd:1],
-  [label:"Cortina - Parar",  cmd:2],
-  [label:"Cortina - Descer", cmd:3]
+  [prefix:"Subir Cortina",  cmd:1],
+  [prefix:"Parar Cortina",  cmd:2],
+  [prefix:"Descer Cortina", cmd:3]
 ]
+
+private String buildChildLabel(String prefix) {
+  String parentLabel = device?.getLabel() ?: device?.getName() ?: "GW8"
+  return "${prefix} ${parentLabel}".trim()
+}
 
 /**
  * Cria/atualiza 3 children do tipo "Generic Component Switch".
@@ -500,16 +531,18 @@ private void createOrUpdateChildButtons(Boolean removeExtras=false) {
   Set<String> keep = []
   CHILD_BUTTON_DEFS.eachWithIndex { m, idx ->
     String dni = "${device.id}-BTN-${idx+1}"
+    String childLabel = buildChildLabel(m.prefix as String)
     def child = getChildDevice(dni)
+
     if (!child) {
       child = addChildDevice("hubitat", "Generic Component Switch", dni,
-        [name: m.label, label: m.label, isComponent: true])
+        [name: childLabel, label: childLabel, isComponent: true])
       if (logEnable) log.debug "Child criado: ${child?.displayName}"
     } else {
-      if (child.label != (m.label as String)) child.setLabel(m.label as String)
+      if (child.label != childLabel) child.setLabel(childLabel)
     }
+
     child.updateDataValue("cmd", (m.cmd as Integer).toString())
-    // Garantir estado OFF visual
     try { child.parse([[name:"switch", value:"off"]]) } catch (ignored) {}
     keep << dni
   }
@@ -625,3 +658,6 @@ def logsOff() {
   log.warn 'logging disabled...'
   device.updateSetting('logEnable', [value:'false', type:'bool'])
 }
+
+private logDebug(msg) { if (settings?.debugOutput == true)  log.debug "${device.displayName} ${msg}" }
+
