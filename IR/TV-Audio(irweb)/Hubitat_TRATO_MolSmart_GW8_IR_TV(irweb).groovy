@@ -18,8 +18,8 @@
  *           V.1.0   11/11/2025 - V1 
  *           1.1 - 26/1/2026 - Fixed Online Status for GW8. Added Version number to driver. Added Memory used in GW8 to status. 
 *            1.2 - 26/2/2026 - Changed Command Names to reflect the SamsungTV remote Control commands (ArrowLeft, Arrow Right, Arrow Up, Arrow Down, Enter, etc). 
-*            1.3 - 10/3/2025 - Added appOpenByName command to open apps by name (Netflix, YouTube and Amazon Prime).
-*
+*            1.3 - 10/3/2026 - Added appOpenByName command to open apps by name (Netflix, YouTube and Amazon Prime).
+*            1.4 - 11/3/2026 - Fixed Callback, added HTTP Last Result to know status of commands sent. 
  *
  *
  */
@@ -49,7 +49,9 @@ metadata {
     attribute "gw8Online", "STRING"
     attribute "gw8StoragePct", "NUMBER"
     attribute "gw8StoragePctText", "STRING"      
-      
+
+	attribute "lastResponseCode", "NUMBER"
+	attribute "lastHttpResult", "STRING"      
 
 
 
@@ -814,7 +816,7 @@ def EnviaComando(button) {
     log.info "Params = " + params
 	log.info "Botão Enviado: " + button
         try {
-            asynchttpPost('gw8cPostCallback', params, [cmd: button])
+            asynchttpPost('gw8PostCallback', params, [cmd: button])
         } catch (e) {
             log.warn "${device.displayName} Async POST scheduling failed: ${e.message}"
     }
@@ -823,29 +825,48 @@ def EnviaComando(button) {
 
 
 void gw8PostCallback(resp, data) {
+
     String cmd = data?.cmd
+    Integer code = resp?.status as Integer
+
     try {
-        if (resp?.status in 200..299) {
-            logDebug "POST OK (async) cmd=${cmd} status=${resp?.status}"
-             state.ultimamensagem =  "Resposta OK"
+
+        if (code in 200..299) {
+
+            logDebug "POST OK cmd=${cmd} status=${code}"
+
+            sendEvent(name: "lastResponseCode", value: code)
+            sendEvent(name: "lastHttpResult", value: "${code} OK")
+
+            state.ultimamensagem = "Resposta OK (${code})"
 
         } else {
-            logWarn "POST error (async) status=${resp?.status} cmd=${cmd}"
-            state.ultimamensagem =  "Erro no envio do comando"
-            
+
+            logWarn "POST ERROR cmd=${cmd} status=${code}"
+
+            sendEvent(name: "lastResponseCode", value: code ?: 0)
+            sendEvent(name: "lastHttpResult", value: "${code} ERROR")
+
+            state.ultimamensagem = "Erro HTTP (${code})"
         }
-    } catch (e) {
-        logWarn "Async callback exception: ${e.message} (cmd=${cmd})"
+
+    }
+    catch (e) {
+
+        logWarn "Async callback exception: ${e.message}"
+
+        sendEvent(name: "lastResponseCode", value: -1)
+        sendEvent(name: "lastHttpResult", value: "EXCEPTION")
+
         state.errormessage = e.message
-        
     }
 }
 
 
 
-
 private logInfo(msg)  { if (settings?.txtEnable   != false) log.info  "${device.displayName} ${msg}" }
-private logDebug(msg) { if (settings?.debugOutput == true)  log.debug "${device.displayName} ${msg}" }
+//private logDebug(msg) { if (settings?.debugOutput == true)  log.debug "${device.displayName} ${msg}" }
+private logDebug(msg) { if (settings?.logEnable == true) log.debug "${device.displayName} ${msg}" }
 private logWarn(msg)  { log.warn "${device.displayName} ${msg}" }
 
 def logsOff() {
