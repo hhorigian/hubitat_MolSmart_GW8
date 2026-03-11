@@ -25,7 +25,7 @@
  *        1.1 - 26/1/2026 - Fixed Online Status for GW8. Added Version number to driver. Added Memory used in GW8 to status. 
  *        1.2 - 27/1/2026 - Added Command: refreshRemoteList, List GW8 Remote Controls. 
  *        1.3 - 19/2/2026 - Fixed 100% open / Closed without waiting for percentage. Force Open and Force Close.  
- *        1.4 - 11/3/2026 - Added PostCallback to know if command was sent successfull via http. 
+ *        1.4 - 11/3/2026 - Added PostCallback to know if command was sent successfull via http. Changed names for childs autocreate pickup label name. 
 
  */
 
