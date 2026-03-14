@@ -49,9 +49,12 @@ metadata {
     capability "Window Shade"              // open, close, pause/stop, setPosition, start/stopPositionChange
 
     // Comandos legados (mantidos)
+    command "up"
+    command "down"
+    command "stop"
     command "Up"
     command "Down"
-    command "Stop"
+    command "Stop"     
 
     // NOVOS comandos (sob demanda)
     command "healthCheckNow"
@@ -162,10 +165,11 @@ private initialize() {
 }
 
 /* ======================= Comandos Legados (mantidos) ======================= */
+def up()   { EnviaComando(1); trackStart("up") }
 def Up()   { EnviaComando(1); trackStart("up") }
-
+def down() { EnviaComando(3); trackStart("down") }
 def Down() { EnviaComando(3); trackStart("down") }
-
+def stop() { EnviaComando(2); finalizeStop(estimateNow()) }
 def Stop() { EnviaComando(2); finalizeStop(estimateNow()) }
 
 /* ======================= Capabilities de Shade (mantidos) ======================= */
