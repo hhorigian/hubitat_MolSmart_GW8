@@ -90,7 +90,8 @@ command "fanspeed"
 command "setdefaults"    
 command "on" 
 command "off"
-      
+command "start" 
+command "stop"      
 command "healthCheckNow"
 
     // NOVOS atributos de saúde/conectividade
@@ -462,6 +463,13 @@ def on() {
 	poweron()
 }
 
+def start() {
+	poweron()
+}
+
+def stop() {
+	poweroff()
+}
 
 def off() {
     poweroff()         
