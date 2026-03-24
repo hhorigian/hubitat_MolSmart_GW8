@@ -552,6 +552,7 @@ private void updateDisplayTempForLastMode(String prevMode = null) {
 def poweroff(){
     log.debug "Thermostat turned off"
     sendEvent(name: "thermostatMode", value: "off")
+    sendEvent(name: "airConOperationMode", value: "off")
     sendEvent(name: "thermostatOperatingState", value: "idle")
 
     def last = device.currentValue("heatingSetpoint") ?: device.currentValue("coolingSetpoint")
@@ -569,6 +570,7 @@ def poweroff(){
 //Botão #1 para dashboard
 def poweron(){
     sendEvent(name: "thermostatMode", value: "on", descriptionText: "Thermostat Mode set to on", isStateChange: true)
+    sendEvent(name: "airConOperationMode", value: "on")
     sendEvent(name: "thermostatOperatingState", value: "cooling")
 
     def ircode =  state.poweron
@@ -579,6 +581,7 @@ def poweron(){
 //Botão #2 para dashboard
 def auto(){
     sendEvent(name: "thermostatMode", value: "auto")
+    sendEvent(name: "airConOperationMode", value: "auto")
     sendEvent(name: "thermostatOperatingState", value: "cooling")    
     def ircode =  state.auto
 	if (ircode.length() < 30) {
@@ -593,6 +596,7 @@ def auto(){
 //Botão #3 para dashboard
 def heat(){
     sendEvent(name: "thermostatMode", value: "heat")
+    sendEvent(name: "airConOperationMode", value: "heat")
     //setThermostatMode("heat")    
     sendEvent(name: "thermostatOperatingState", value: "heating")    
     setHeatingSetpoint(25)    
@@ -610,6 +614,7 @@ def heat(){
 //Botão #4 para dashboard
 def cool(){
     sendEvent(name: "thermostatMode", value: "cool")
+    sendEvent(name: "airConOperationMode", value: "cool")
     //setThermostatMode("cool")
     sendEvent(name: "thermostatOperatingState", value: "cooling")    
     setCoolingSetpoint(19)
@@ -626,6 +631,7 @@ def cool(){
 //Botão #5 para dashboard
 def fan(){
     sendEvent(name: "thermostatMode", value: "fan")
+    sendEvent(name: "airConOperationMode", value: "fan")
     sendEvent(name: "thermostatOperatingState", value: "fan only")    
     
     def ircode =  state.fan
@@ -640,6 +646,7 @@ def fan(){
 //Botão #6 para dashboard
 def dry(){
     sendEvent(name: "thermostatMode", value: "dry")
+    sendEvent(name: "airConOperationMode", value: "dry")
     def ircode =   state.dry
 	if (ircode.length() < 30) {
 		ircode = state.mode
@@ -650,6 +657,7 @@ def dry(){
 //Botão #7 para dashboard
 def setautocool(){
     sendEvent(name: "thermostatMode", value: "setautocool")
+    sendEvent(name: "airConOperationMode", value: "setautocool")
     def ircode =  state.setautocool
     EnviaComando(ircode)
 }
