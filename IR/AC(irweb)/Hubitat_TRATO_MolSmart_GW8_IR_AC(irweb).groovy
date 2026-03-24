@@ -43,7 +43,7 @@ metadata {
 
       
 command "GetRemoteDATA"
-command "AtualizaDadosGW3"
+command "AtualizaDadosGW8"
 command "cleanvars"
 command "clearTemps"
 command "createTemps"      
@@ -71,6 +71,7 @@ command "comandoextra8"
 command "sweep"
 command "turbo"
 command "fan"
+command "temp16"
 command "temp17"
 command "temp18"
 command "temp19"
@@ -140,7 +141,7 @@ command "healthCheckNow"
 
   preferences {
     input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false
-        input name: "molIPAddress", type: "text", title: "MolSmart GW3 IP Address", submitOnChange: true, required: true, defaultValue: "192.168.1.100" 
+        input name: "molIPAddress", type: "text", title: "MolSmart GW8 IP Address", submitOnChange: true, required: true, defaultValue: "192.168.1.100" 
         input name: "user", title:"Usuário", type: "string", required: true, defaultValue: "admin" 
         input name: "password", title:"Senha", type: "string", required: true, defaultValue: "12345678" 
 	    input name: "channel", title:"Canal Infravermelho (1-8). O Blaster é o 1", type: "string", required: true , defaultValue: "1"        
@@ -224,7 +225,8 @@ state.tempup = resp.data.functions.function[43]
 state.tempdown = resp.data.functions.function[44]
 state.fanspeed = resp.data.functions.function[45]
 state.temp24 = resp.data.functions.function[18]
-state.temp25 = resp.data.functions.function[19]    
+state.temp25 = resp.data.functions.function[19]  
+state.temp16 = resp.data.functions.function[42]
 //heattemps                
 state.heattemp25 = resp.data.functions.function[12] // commandextra1
 state.heattemp26 = resp.data.functions.function[13] // commandextra2
@@ -250,7 +252,7 @@ def cleanvars()  //Usada para limpar todos os states e controles aprendidos.
 {
 //state.remove()
   state.clear() 
-  AtualizaDadosGW3()  
+  AtualizaDadosGW8()  
 }
 
 def clearTemps() {
@@ -283,7 +285,7 @@ def updated()
 {  
     log.debug "updated()"
 	initialize()
-    AtualizaDadosGW3()   
+    AtualizaDadosGW8()   
     off()
 	if (logEnable) runIn(1800,logsOff)
     sendEvent(name: "driverVersion", value: DRIVER_VERSION)
@@ -349,7 +351,7 @@ def setdefaults() {
 
 
 //Get Device info and set as state to use during driver.
-def AtualizaDadosGW3() {
+def AtualizaDadosGW8() {
     state.currentip = settings.molIPAddress
     state.currentip = settings.molIPAddress
     state.serialNum = settings.serialNum
@@ -787,6 +789,15 @@ def temp18(){
 	
 }
 
+
+//Botão #25 para dashboard
+def temp16(){
+    sendEvent(name: "CoolingSetpoint", value: 16 )
+    def ircode =  state.temp18
+    EnviaComando(ircode)
+    log.info "Sent command Temp =  16 " 	
+	
+}
 
 
 //Botão #26 para dashboard
