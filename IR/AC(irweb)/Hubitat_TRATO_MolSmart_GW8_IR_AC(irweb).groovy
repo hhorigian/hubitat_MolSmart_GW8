@@ -23,6 +23,7 @@
  *
  *            V.1.0   11/11/2024 - V1 para trazer os controles remotos prontos. 
  *            1.1 - 26/1/2026 - Fixed Online Status for GW8. Added Version number to driver. Added Memory used in GW8 to status. 
+ *            1.2 - 24/3/2026 - Fixed Postback. Fixed temperatures 24 and 25 Cool. Added on/off commands for Maker API. . 
  
 */
 
@@ -86,18 +87,20 @@ command "timer"
 command "tempup"
 command "tempdown"
 command "fanspeed"	 
-command "setdefaults"      
-
+command "setdefaults"    
+command "on" 
+command "off"
+      
 command "healthCheckNow"
 
     // NOVOS atributos de saúde/conectividade
     attribute "lastHealthAt", "STRING"
     attribute "healthLatencyMs", "NUMBER"
 
-    // NOVO: versão do GW3 (6 caracteres após "Version: ")
+    // NOVO: versão do GW8 (6 caracteres após "Version: ")
     attribute "gw8Version", "STRING"      
 
-    // NOVO: versão do GW3 (6 caracteres após "Version: ")
+    // NOVO: versão do GW8 (6 caracteres após "Version: ")
     attribute "gw8Online", "STRING"
     attribute "gw8StoragePct", "NUMBER"
     attribute "gw8StoragePctText", "STRING"      
@@ -114,8 +117,8 @@ command "healthCheckNow"
     import groovy.transform.Field
     import groovy.json.JsonOutput
     @Field static final String DRIVER = "by TRATO"
-    @Field static final String USER_GUIDE = "https://github.com/hhorigian/hubitat_MolSmart_GW3_IR/tree/main/TV"
-	@Field static final String DRIVER_VERSION = "1.1"
+    @Field static final String USER_GUIDE = "https://github.com/hhorigian/hubitat_MolSmart_GW8/tree/main/IR/AC(irweb)"
+	@Field static final String DRIVER_VERSION = "1.3"
 
 
     String fmtHelpInfo(String str) {
@@ -193,8 +196,6 @@ state.comandoextra3 = resp.data.functions.function[14]
 state.comandoextra4 = resp.data.functions.function[15]
 state.comandoextra5 = resp.data.functions.function[16]
 state.comandoextra6 = resp.data.functions.function[17]
-state.comandoextra7 = resp.data.functions.function[18]
-state.comandoextra8 = resp.data.functions.function[19]
 state.fastcold = resp.data.functions.function[20]
 state.temp18 = resp.data.functions.function[21]
 state.temp20 = resp.data.functions.function[22]
@@ -221,8 +222,8 @@ state.io = resp.data.functions.function[42]
 state.tempup = resp.data.functions.function[43]
 state.tempdown = resp.data.functions.function[44]
 state.fanspeed = resp.data.functions.function[45]
-state.temp24 = resp.data.functions.function[46]
-state.temp25 = resp.data.functions.function[47]    
+state.temp24 = resp.data.functions.function[18]
+state.temp25 = resp.data.functions.function[19]    
 //heattemps                
 state.heattemp25 = resp.data.functions.function[12] // commandextra1
 state.heattemp26 = resp.data.functions.function[13] // commandextra2
@@ -230,6 +231,7 @@ state.heattemp27 = resp.data.functions.function[14] // commandextra3
 state.heattemp28 = resp.data.functions.function[15] // commandextra4
 state.heattemp29 = resp.data.functions.function[16] // commandextra5
 state.heattemp30 = resp.data.functions.function[17] // commandextra6
+state.temp16 = resp.data.functions.function[19]                 
                 
     
     }
@@ -865,6 +867,22 @@ def temp21(){
 	
 }
 
+def temp24(){
+    sendEvent(name: "CoolingSetpoint", value: 24 )
+    def ircode =   state.temp24
+    EnviaComando(ircode)
+    log.info "Sent command Temp =  24" 	
+	
+}
+
+def temp25(){
+    sendEvent(name: "CoolingSetpoint", value: 25 )
+    def ircode =   state.temp25
+    EnviaComando(ircode)
+    log.info "Sent command Temp =  25" 	
+	
+}
+
 //Botão #39 para dashboard
 def swing(){
     sendEvent(name: "action", value: "swing")
@@ -1281,9 +1299,47 @@ def EnviaComando(button) {
     log.info "Params = " + params
 	
         try {
-            asynchttpPost('gw3PostCallback', params, [cmd: button])
+            asynchttpPost('gw8PostCallback', params, [cmd: button])
         } catch (e) {
             log.warn "${device.displayName} Async POST scheduling failed: ${e.message}"
+    }
+}
+
+void gw8PostCallback(resp, data) {
+
+    String cmd = data?.cmd
+    Integer code = resp?.status as Integer
+
+    try {
+
+        if (code in 200..299) {
+
+            logDebug "POST OK cmd=${cmd} status=${code}"
+
+            sendEvent(name: "lastResponseCode", value: code)
+            sendEvent(name: "lastHttpResult", value: "${code} OK")
+
+            state.ultimamensagem = "Resposta OK (${code})"
+
+        } else {
+
+            logWarn "POST ERROR cmd=${cmd} status=${code}"
+
+            sendEvent(name: "lastResponseCode", value: code ?: 0)
+            sendEvent(name: "lastHttpResult", value: "${code} ERROR")
+
+            state.ultimamensagem = "Erro HTTP (${code})"
+        }
+
+    }
+    catch (e) {
+
+        logWarn "Async callback exception: ${e.message}"
+
+        sendEvent(name: "lastResponseCode", value: -1)
+        sendEvent(name: "lastHttpResult", value: "EXCEPTION")
+
+        state.errormessage = e.message
     }
 }
 
