@@ -58,14 +58,14 @@ metadata {
 	    command "healthCheckNow"
 
     // NOVOS atributos de saúde/conectividade
-    attribute "gw3Online", "ENUM", ONLINE_ENUM
+    attribute "gw8Online", "ENUM", ONLINE_ENUM
     attribute "lastHealthAt", "STRING"
     attribute "healthLatencyMs", "NUMBER"
 
-    // NOVO: versão do GW3 (6 caracteres após "Version: ")
+    // NOVO: versão do gw8 (6 caracteres após "Version: ")
     attribute "gw8Version", "STRING"      
 
-    // NOVO: versão do GW3 (6 caracteres após "Version: ")
+    // NOVO: versão do gw8 (6 caracteres após "Version: ")
     attribute "gw8Online", "STRING"
     attribute "gw8StoragePct", "NUMBER"
     attribute "gw8StoragePctText", "STRING"      
@@ -78,7 +78,7 @@ metadata {
 
     import groovy.transform.Field
     @Field static final String DRIVER = "by TRATO"
-    @Field static final String USER_GUIDE = "https://github.com/hhorigian/hubitat_MolSmart_GW3_IR/tree/main/Universal"
+    @Field static final String USER_GUIDE = "https://github.com/hhorigian/hubitat_MolSmart_gw8_IR/tree/main/Universal"
 	@Field static final String DRIVER_VERSION = "1.1"
 
 
@@ -166,7 +166,7 @@ def updated()
     log.debug "updated()"
 	// Garante atributo
 	if (!device.currentValue("gw8Online")) sendEvent(name:"gw8Online", value:"unknown")    
-    AtualizaDadosGW3()
+    AtualizaDadosgw8()
 	if (logEnable) runIn(1800,logsOff)
     if (createButtonsOnSave) createOrUpdateChildButtons(true)    
     sendEvent(name: "driverVersion", value: DRIVER_VERSION)
@@ -175,7 +175,7 @@ def updated()
     
 }
 
-def AtualizaDadosGW3() {
+def AtualizaDadosgw8() {
     state.currentip = settings.molIPAddress
     state.username = settings.user
     state.pwd = settings.password
@@ -407,13 +407,13 @@ def EnviaComando(button) {
     log.info "Params = " + params
 	
         try {
-            asynchttpPost('gw3PostCallback', params, [cmd: button])
+            asynchttpPost('gw8PostCallback', params, [cmd: button])
         } catch (e) {
             log.warn "${device.displayName} Async POST scheduling failed: ${e.message}"
     }
 }
 
-void gw3PostCallback(resp, data) {
+void gw8PostCallback(resp, data) {
     String cmd = data?.cmd
     try {
         if (resp?.status in 200..299) {
