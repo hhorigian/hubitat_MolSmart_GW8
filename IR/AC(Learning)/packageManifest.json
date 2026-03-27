@@ -7,10 +7,10 @@
  "releaseNotes":"1.0 - First Version",
  "drivers": [
   {
-     "id":"0073250b-c9f1-4aaa-9cf2-460cbae6661d",
-     "name":"MolSmart - GW8 - AC(irweb)",
+     "id":"0073250b-c9f1-4aaa-9cf2-460cdfe6861d",
+     "name":"MolSmart - GW8 - AC (learning)",
      "namespace":"TRATO",
-     "location":"https://raw.githubusercontent.com/hhorigian/hubitat_MolSmart_GW8/refs/heads/main/IR/AC(irweb)/Hubitat_TRATO_MolSmart_GW8_IR_AC(irweb).groovy",
+     "location":"https://raw.githubusercontent.com/hhorigian/hubitat_MolSmart_GW8/refs/heads/main/IR/AC(Learning)/Hubitat_TRATO_MolSmart_GW8_IR_AC(learning).groovy",
      "required":true
   }
   ]
