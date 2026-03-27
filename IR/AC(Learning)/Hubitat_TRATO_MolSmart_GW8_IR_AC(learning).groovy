@@ -15,12 +15,11 @@
  *
  *            --- Driver para GW8 - AC - Salvos no GW8 (biblioteca ou learning)
  *            V.1.0 25/03/2026 - V1
- *            V.2.0 27/03/2026 - Corrigido buildFullUrl para usar Map de parâmetros AC
  */
 
 
 metadata {
-  definition (name: "MolSmart - GW8 - IRGW8 - AC", namespace: "TRATO", author: "VH", vid: "generic-contact") {
+  definition (name: "MolSmart - GW8 - AC (learning)", namespace: "TRATO", author: "VH", vid: "generic-contact") {
         capability "Actuator"
         capability "Sensor"
         capability "Temperature Measurement"
