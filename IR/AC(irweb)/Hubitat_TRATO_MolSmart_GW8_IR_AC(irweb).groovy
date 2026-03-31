@@ -24,7 +24,7 @@
  *            V.1.0   11/11/2024 - V1 para trazer os controles remotos prontos. 
  *            1.1 - 26/1/2026 - Fixed Online Status for GW8. Added Version number to driver. Added Memory used in GW8 to status. 
  *            1.2 - 24/3/2026 - Fixed Postback. Fixed temperatures 24 and 25 Cool. Added on/off commands for Maker API. . 
- 
+ * 			  1.3 - 31/3/2026 - Added commands for Vetra integration feedback
 */
 
 metadata {
@@ -120,7 +120,7 @@ command "healthCheckNow"
     import groovy.json.JsonOutput
     @Field static final String DRIVER = "by TRATO"
     @Field static final String USER_GUIDE = "https://github.com/hhorigian/hubitat_MolSmart_GW8/tree/main/IR/AC(irweb)"
-	@Field static final String DRIVER_VERSION = "1.3"
+	@Field static final String DRIVER_VERSION = "1.4"
 
 
     String fmtHelpInfo(String str) {
@@ -563,6 +563,7 @@ def poweroff(){
     log.debug "Thermostat turned off"
     sendEvent(name: "thermostatMode", value: "off")
     sendEvent(name: "airConOperationMode", value: "off")
+    sendEvent(name: "switch", value: "off")
     sendEvent(name: "thermostatOperatingState", value: "idle")
 
     def last = device.currentValue("heatingSetpoint") ?: device.currentValue("coolingSetpoint")
@@ -579,9 +580,12 @@ def poweroff(){
 
 //Botão #1 para dashboard
 def poweron(){
-    sendEvent(name: "thermostatMode", value: "on", descriptionText: "Thermostat Mode set to on", isStateChange: true)
-    sendEvent(name: "airConOperationMode", value: "on")
-    sendEvent(name: "thermostatOperatingState", value: "cooling")
+    def lastMode = state.lastRunningMode ?: "cool"
+    sendEvent(name: "thermostatMode", value: lastMode, descriptionText: "Thermostat Mode set to ${lastMode}", isStateChange: true)
+    sendEvent(name: "airConOperationMode", value: lastMode)
+    sendEvent(name: "currentJobMode", value: lastMode)
+    sendEvent(name: "switch", value: "on")
+    sendEvent(name: "thermostatOperatingState", value: (lastMode == "heat") ? "heating" : "cooling")
 
     def ircode =  state.poweron
     EnviaComando(ircode)   
@@ -607,6 +611,8 @@ def auto(){
 def heat(){
     sendEvent(name: "thermostatMode", value: "heat")
     sendEvent(name: "airConOperationMode", value: "heat")
+    sendEvent(name: "currentJobMode", value: "heat")
+    sendEvent(name: "switch", value: "on")
     //setThermostatMode("heat")    
     sendEvent(name: "thermostatOperatingState", value: "heating")    
     setHeatingSetpoint(25)    
@@ -625,6 +631,8 @@ def heat(){
 def cool(){
     sendEvent(name: "thermostatMode", value: "cool")
     sendEvent(name: "airConOperationMode", value: "cool")
+    sendEvent(name: "currentJobMode", value: "cool")
+    sendEvent(name: "switch", value: "on")
     //setThermostatMode("cool")
     sendEvent(name: "thermostatOperatingState", value: "cooling")    
     setCoolingSetpoint(19)
@@ -782,7 +790,7 @@ def fastcold(){
 
 //Botão #25 para dashboard
 def temp18(){
-    sendEvent(name: "CoolingSetpoint", value: 18 )
+    sendEvent(name: "coolingSetpoint", value: 18 )
     def ircode =  state.temp18
     EnviaComando(ircode)
     log.info "Sent command Temp =  18 " 	
@@ -792,7 +800,7 @@ def temp18(){
 
 //Botão #25 para dashboard
 def temp16(){
-    sendEvent(name: "CoolingSetpoint", value: 16 )
+    sendEvent(name: "coolingSetpoint", value: 16 )
     def ircode =  state.temp18
     EnviaComando(ircode)
     log.info "Sent command Temp =  16 " 	
@@ -802,7 +810,7 @@ def temp16(){
 
 //Botão #26 para dashboard
 def temp20(){
-    sendEvent(name: "CoolingSetpoint", value: 20 )
+    sendEvent(name: "coolingSetpoint", value: 20 )
     def ircode =  state.temp20
     EnviaComando(ircode)
     log.info "Sent command Temp =  18 " 	
@@ -811,7 +819,7 @@ def temp20(){
 
 //Botão #27 para dashboard
 def temp22(){
-    sendEvent(name: "CoolingSetpoint", value: 22 )
+    sendEvent(name: "coolingSetpoint", value: 22 )
     def ircode =  state.temp22
     EnviaComando(ircode)
     log.info "Sent command Temp =  22" 	
@@ -842,7 +850,7 @@ def turbo(){
 
 //Botão #32 para dashboard
 def temp17(){
-    sendEvent(name: "CoolingSetpoint", value: 17 )
+    sendEvent(name: "coolingSetpoint", value: 17 )
     def ircode = state.temp17
     EnviaComando(ircode)
     log.info "Sent command Temp =  17 " 	
@@ -851,7 +859,7 @@ def temp17(){
 
 //Botão #33 para dashboard
 def temp23(){
-    sendEvent(name: "CoolingSetpoint", value: 23 )
+    sendEvent(name: "coolingSetpoint", value: 23 )
     def ircode =  state.temp23
     EnviaComando(ircode)
     log.info "Sent command Temp =  23 " 	
@@ -860,7 +868,7 @@ def temp23(){
 
 //Botão #34 para dashboard
 def temp26(){
-    sendEvent(name: "CoolingSetpoint", value: 26 )
+    sendEvent(name: "coolingSetpoint", value: 26 )
     def ircode =  state.temp26
     EnviaComando(ircode)
     log.info "Sent command Temp =  26 " 	
@@ -878,7 +886,7 @@ def onoff(){
 
 //Botão #36 para dashboard
 def temp19(){
-    sendEvent(name: "CoolingSetpoint", value: 19 )
+    sendEvent(name: "coolingSetpoint", value: 19 )
     def ircode =  state.temp19
     EnviaComando(ircode)
     log.info "Sent command Temp =  19 " 	
@@ -887,7 +895,7 @@ def temp19(){
 
 //Botão #38 para dashboard
 def temp21(){
-    sendEvent(name: "CoolingSetpoint", value: 21 )
+    sendEvent(name: "coolingSetpoint", value: 21 )
     def ircode =   state.temp21
     EnviaComando(ircode)
     log.info "Sent command Temp =  21 " 	
@@ -895,7 +903,7 @@ def temp21(){
 }
 
 def temp24(){
-    sendEvent(name: "CoolingSetpoint", value: 24 )
+    sendEvent(name: "coolingSetpoint", value: 24 )
     def ircode =   state.temp24
     EnviaComando(ircode)
     log.info "Sent command Temp =  24" 	
@@ -903,7 +911,7 @@ def temp24(){
 }
 
 def temp25(){
-    sendEvent(name: "CoolingSetpoint", value: 25 )
+    sendEvent(name: "coolingSetpoint", value: 25 )
     def ircode =   state.temp25
     EnviaComando(ircode)
     log.info "Sent command Temp =  25" 	
@@ -1011,7 +1019,7 @@ def fanspeed(){
 
 //Botão # para dashboard
 def heattemp25(){
-    sendEvent(name: "HeatingSetpoint", value: 25 )
+    sendEvent(name: "heatingSetpoint", value: 25 )
     def ircode =   state.heattemp25
     EnviaComando(ircode)
     log.info "Sent command Temp Heat =  25 " 	
@@ -1021,7 +1029,7 @@ def heattemp25(){
 
 //Botão # para dashboard
 def heattemp26(){
-    sendEvent(name: "HeatingSetpoint", value: 26 )
+    sendEvent(name: "heatingSetpoint", value: 26 )
     def ircode =   state.heattemp26
     EnviaComando(ircode)
     log.info "Sent command Temp Heat =  26 " 	    
@@ -1030,7 +1038,7 @@ def heattemp26(){
 
 //Botão # para dashboard
 def heattemp27(){
-    sendEvent(name: "HeatingSetpoint", value: 27 )
+    sendEvent(name: "heatingSetpoint", value: 27 )
     def ircode =   state.heattemp27
     EnviaComando(ircode)
     log.info "Sent command Temp Heat =  27 " 	    
@@ -1039,7 +1047,7 @@ def heattemp27(){
 
 //Botão # para dashboard
 def heattemp28(){
-    sendEvent(name: "HeatingSetpoint", value: 28 )
+    sendEvent(name: "heatingSetpoint", value: 28 )
     def ircode =   state.heattemp28
     EnviaComando(ircode)
     log.info "Sent command Temp Heat =  28 " 	    
@@ -1047,7 +1055,7 @@ def heattemp28(){
 
 //Botão # para dashboard
 def heattemp29(){
-    sendEvent(name: "HeatingSetpoint", value: 29 )
+    sendEvent(name: "heatingSetpoint", value: 29 )
     def ircode =   state.heattemp29
     EnviaComando(ircode)
     log.info "Sent command Temp Heat =  29 " 	    
@@ -1056,7 +1064,7 @@ def heattemp29(){
 
 //Botão # para dashboard
 def heattemp30(){
-    sendEvent(name: "HeatingSetpoint", value: 30 )
+    sendEvent(name: "heatingSetpoint", value: 30 )
     def ircode =   state.heattemp30
     EnviaComando(ircode)
     
