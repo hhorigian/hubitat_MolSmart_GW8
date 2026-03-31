@@ -1,10 +1,10 @@
 {
  "packageName":"MolSmart - GW8 - AC (irweb)",
  "author":"VH",
- "version":"1.2",
+ "version":"1.3",
  "minimumHEVersion":"2.3.7.100",
- "dateReleased":"2026-03-24",
- "releaseNotes":"1.1 - Minumum Functions added.",
+ "dateReleased":"2026-03-31",
+ "releaseNotes":"1.3 - Vetra fixes.",
  "drivers": [
   {
      "id":"0073250b-c9f1-4aaa-9cf2-460cbae6661d",
