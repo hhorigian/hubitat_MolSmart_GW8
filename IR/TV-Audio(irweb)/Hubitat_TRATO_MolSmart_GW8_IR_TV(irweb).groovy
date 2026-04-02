@@ -20,6 +20,7 @@
 *            1.2 - 26/2/2026 - Changed Command Names to reflect the SamsungTV remote Control commands (ArrowLeft, Arrow Right, Arrow Up, Arrow Down, Enter, etc). 
 *            1.3 - 10/3/2026 - Added appOpenByName command to open apps by name (Netflix, YouTube and Amazon Prime).
 *            1.4 - 11/3/2026 - Fixed Callback, added HTTP Last Result to know status of commands sent. 
+ *           1.5 - 01/4/2026 - Dropdown para selecionar controle remoto direto do ir.molsmart.com.br (TV e Audio).
  *
  *
  */
@@ -51,11 +52,14 @@ metadata {
     attribute "gw8StoragePctText", "STRING"      
 
 	attribute "lastResponseCode", "NUMBER"
-	attribute "lastHttpResult", "STRING"      
+	attribute "lastHttpResult", "STRING"
+    attribute "driverVersion", "STRING"
+    attribute "remoteListStatus", "STRING"
 
 
 
 command "GetRemoteDATA"
+command "FetchRemoteList"
 command "cleanvars"  
 command "poweroff"
 command "poweron"
@@ -137,7 +141,8 @@ command "fastForward"
 
     @Field static final String DRIVER1 = "IR MolSmart"
     @Field static final String USER_GUIDE1 = "https://ir.molsmart.com.br/"
-	@Field static final String DRIVER_VERSION = "1.2"
+	@Field static final String DRIVER_VERSION = "1.5"
+    @Field static final String REMOTE_LIST_URL = "http://ir.molsmart.com.br/controles.php?apikey=mol-ir-2f9a8c4e1b7d3k6j"
 
 
     String fmtHelpInfo1(String str) {
@@ -148,19 +153,37 @@ command "fastForward"
 
 
   preferences {
-    	input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false
-        input name: "molIPAddress", type: "text", title: "MolSmart GW8 IP Address", submitOnChange: true, required: true, defaultValue: "192.168.1.100" 
-    	input name: "user", title:"Usuário", type: "string", required: true, defaultValue: "admin" 
-	    input name: "password", title:"Senha", type: "string", required: true, defaultValue: "12345678" 
-	    input name: "channel", title:"Canal Infravermelho (1-8). O Blaster é o 1", type: "string", required: true , defaultValue: "1"        
-        input name: "repeatSendHEX", title:"Repeat for SendHex", type: "string", defaultValue: "1"   // REPEAT SEND PRONTO HEX
-        //help guide
-        input name: "UserGuide", type: "hidden", title: fmtHelpInfo("Manual do Driver") 
-        input name: "SiteIR", type: "hidden", title: fmtHelpInfo1("Site IR MolSmart") 
-        input name: "webserviceurl", title:"URL Do Controle Remoto", type: "string"
+        input name: "molIPAddress", type: "text", title: "MolSmart GW8 IP Address", submitOnChange: true, required: true, defaultValue: "192.168.1.100"
+        input name: "user", title:"Usuário", type: "string", required: true, defaultValue: "admin"
+        input name: "password", title:"Senha", type: "string", required: true, defaultValue: "12345678"
+        input name: "channel", title:"Canal Infravermelho (1-8). O Blaster é o 1", type: "string", required: true, defaultValue: "1"
+        input name: "repeatSendHEX", title:"Repeat for SendHex", type: "string", defaultValue: "1"
+
+        // === Seleção de Controle Remoto ===
+        input name: "remoteTypeFilter", type: "enum", title: "📺 Tipo de dispositivo", options: ["todos":"Todos (TV + Audio)", "tv":"TV", "som":"Audio/Som"], defaultValue: "todos", submitOnChange: false
+        input name: "irEmail", type: "string", title: "📧 Email do ir.molsmart.com.br (opcional — traz seus controles privados)", submitOnChange: false
+        input name: "remoteFilter", type: "string", title: "🔍 Filtro de controle (ex: Samsung) — salve para atualizar a lista abaixo", submitOnChange: false
+
+        if (state.remoteOptions) {
+            input name: "selectedRemote", type: "enum", title: "📡 Selecione o Controle Remoto",
+                  options: state.remoteOptions, required: false, submitOnChange: false
+        } else {
+            input name: "selectedRemote", type: "enum", title: "📡 Selecione o Controle Remoto (salve para carregar a lista)",
+                  options: ["---":"Salve as configurações para carregar..."], required: false
+        }
+
+        // === URL manual (opcional) ===
+        input name: "webserviceurl", title:"URL Manual do Controle (opcional — sobrepõe a seleção acima)", type: "string"
+
+        // === Health Check ===
         input name: "enableHealthCheck", type: "bool",   title: "Ativar verificação de online (HTTP /info)", defaultValue: true
         input name: "healthCheckMins",   type: "number", title: "Intervalo do health check (min)", defaultValue: 30, range: "1..1440"
         input name: "createButtonsOnSave", type: "bool", title: "Criar/atualizar Child Switches para botões ao salvar", defaultValue: true
+
+        //help guide
+        input name: "UserGuide", type: "hidden", title: fmtHelpInfo("Manual do Driver")
+        input name: "SiteIR", type: "hidden", title: fmtHelpInfo1("Site IR MolSmart")
+        input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false
 
   }   
   
@@ -177,23 +200,36 @@ def initialized()
 }
 
 
-def GetRemoteDATA()
+def GetRemoteDATA() { GetRemoteDATA(null) }
+
+def GetRemoteDATA(String urlOverride)
 {
-  
+    String targetUrl = urlOverride ?: settings.webserviceurl ?: state.lastRemoteUrl
+    if (!targetUrl) {
+        log.warn "GetRemoteDATA: nenhuma URL disponível"
+        return
+    }
+    state.lastRemoteUrl = targetUrl
+
     def params = [
-        uri: webserviceurl,
+        uri: targetUrl,
         contentType: "application/json"
     ]
     try {
         httpGet(params) { resp ->
-            if (resp.success) {                
+            if (resp.success) {
                 sendEvent(name: "GetRemoteData", value: "Sucess")
-                //log.debug "RESULT = " + resp.data
-      
-                sendEvent(name: "Controle", value: resp.data.name)   
-                sendEvent(name: "TipoControle", value: resp.data.type)   
-                sendEvent(name: "Formato", value: resp.data.conversor)                   
-                
+
+                sendEvent(name: "Controle", value: resp.data.name)
+                sendEvent(name: "TipoControle", value: resp.data.type)
+                sendEvent(name: "Formato", value: resp.data.conversor)
+                // Persiste para reemitir no updated()
+                state.savedControle     = resp.data.name
+                state.savedTipoControle = resp.data.type
+                state.savedFormato      = resp.data.conversor
+                log.info "Controle: " + resp.data.name
+                log.info "TipoControle: " + resp.data.type
+
                 state.encoding = resp.data.conversor
                 state.OFFIRsend  = resp.data.functions.function[0]
                 state.OnIRsend  = resp.data.functions.function[1]
@@ -263,18 +299,113 @@ def installed()
 }
 
 def updated()
-{ 
-        if (!device.currentValue("gw8Online")) sendEvent(name:"gw8Online", value:"unknown")
-    sendEvent(name:"numberOfButtons", value:52)    
+{
     log.debug "updated()"
-    AtualizaDadosGW8()  
-	if (!device.currentValue("gw8Online")) sendEvent(name:"gw8Online", value:"unknown")    
+    if (!device.currentValue("gw8Online")) sendEvent(name:"gw8Online", value:"unknown")
+    sendEvent(name:"numberOfButtons", value:52)
+    AtualizaDadosGW8()
     if (logEnable) runIn(1800,logsOff)
     if (createButtonsOnSave) createOrUpdateChildButtons(true)
     if (enableHealthCheck) scheduleHealth()
     sendEvent(name: "driverVersion", value: DRIVER_VERSION)
-    
+
+    // Reemite atributos persistidos do controle remoto
+    if (state.savedControle)     sendEvent(name: "Controle",     value: state.savedControle)
+    if (state.savedTipoControle) sendEvent(name: "TipoControle", value: state.savedTipoControle)
+    if (state.savedFormato)      sendEvent(name: "Formato",      value: state.savedFormato)
+
+    // Carrega lista de controles e aplica o selecionado (dentro do callback)
+    fetchRemoteList()
 }
+
+// =====================================================================
+// DROPDOWN: Busca lista de controles públicos do ir.molsmart.com.br
+// =====================================================================
+
+def fetchRemoteList() {
+    // Limpa lista anterior antes de buscar
+    state.remoteOptions  = ["---":"Carregando..."]
+    state.remoteTokenMap = [:]
+    device.updateSetting("selectedRemote", [type: "enum", value: ""])
+    device.updateSetting("selectedRemote", [type: "enum", value: "", options: ["---":"Carregando..."]])
+    String tipo = settings.remoteTypeFilter ?: "todos"
+    String listUrl = REMOTE_LIST_URL
+    if (tipo != "todos") listUrl += "&type=${tipo}"
+    if (settings.remoteFilter) {
+        listUrl += "&search=" + java.net.URLEncoder.encode(settings.remoteFilter.trim(), "UTF-8")
+    }
+    if (settings.irEmail) {
+        listUrl += "&email=" + java.net.URLEncoder.encode(settings.irEmail.trim(), "UTF-8")
+    }
+    log.info "Buscando lista de controles: ${listUrl}"
+
+    def params = [ uri: listUrl, contentType: "application/json", timeout: 10 ]
+    try {
+        httpGet(params) { resp ->
+            if (resp.success && resp.data?.controls) {
+                def controls = resp.data.controls
+                // LinkedHashMap garante ordem dos itens no dropdown
+                def tokenMap = [:] as LinkedHashMap
+                def options  = [:] as LinkedHashMap
+
+                // Públicos primeiro, depois privados — usando LinkedHashMap explícito
+                def publicControles  = controls.findAll { it.source?.toString() == "public" }
+                def privateControles = controls.findAll { it.source?.toString() == "user" }
+                def ordered = [] 
+                publicControles.each  { ordered << [name: it.name.toString(), token: it.token.toString(), prefix: "PUBLICO"] }
+                privateControles.each { ordered << [name: it.name.toString(), token: it.token.toString(), prefix: "PRIVADO"] }
+                ordered.each { item ->
+                    String lbl = "${item.prefix} - ${item.name}"
+                    tokenMap[lbl] = item.token
+                    options[lbl]  = lbl
+                }
+
+                state.remoteTokenMap = tokenMap
+                state.remoteOptions  = options
+
+                int userCount   = resp.data.user_count   ?: 0
+                int publicCount = resp.data.public_count ?: controls.size()
+                log.info "Lista carregada: ${userCount} meus + ${publicCount} públicos"
+                sendEvent(name: "remoteListStatus", value: "${userCount} meus + ${publicCount} públicos")
+
+                device.updateSetting("selectedRemote", [type: "enum", value: settings.selectedRemote ?: ""])
+
+                if (settings.selectedRemote &&
+                    settings.selectedRemote != "---" &&
+                    !settings.selectedRemote.startsWith("---")) {
+                    applySelectedRemote()
+                }
+            } else {
+                log.warn "fetchRemoteList: resposta vazia ou sem controls"
+            }
+        }
+    } catch (Exception e) {
+        log.warn "fetchRemoteList falhou: ${e.message}"
+    }
+}
+
+def applySelectedRemote() {
+    String selected = settings.selectedRemote
+    if (!selected || selected == "---") return
+
+    def tokenMap = state.remoteTokenMap
+    if (!tokenMap || !tokenMap.containsKey(selected)) {
+        log.warn "applySelectedRemote: '${selected}' não está na lista atual (filtro mudou?). Limpando seleção."
+        device.updateSetting("selectedRemote", [type: "enum", value: ""])
+        return
+    }
+
+    String token = tokenMap[selected]
+    String url   = "https://molsmart-integration.web.app/controle-integration?token=${token}"
+    log.info "Aplicando controle '${selected}' → token=${token}"
+
+    // Limpa URL manual para não conflitar
+    device.updateSetting("webserviceurl", [type: "string", value: ""])
+    // Passa URL direto — sem depender de updateSetting ser síncrono
+    GetRemoteDATA(url)
+}
+
+// =====================================================================
 
 //Get Device info and set as state to use during driver.
 def AtualizaDadosGW8() {
@@ -289,18 +420,19 @@ def AtualizaDadosGW8() {
 
 //Basico on / off para Switch 
 def on() {
-     sendEvent(name: "switch", value: "on", isStateChange: true)
-     def ircode =  state.OnIRsend   
-     log.info "ircode = " + ircode
-     EnviaComando(ircode)
-
+    sendEvent(name: "switch", value: "on", isStateChange: true)
+    def ircode = state.OnIRsend
+    if (!ircode) { ircode = state.OFFIRsend }  // fallback: toggle
+    if (ircode) { EnviaComando(ircode) }
+    else { log.debug "on(): nenhum código IR disponível, suprimido" }
 }
 
 def off() {
-     sendEvent(name: "switch", value: "off", isStateChange: true)
-     def ircode =  state.OFFIRsend    
-     EnviaComando(ircode)
-         
+    sendEvent(name: "switch", value: "off", isStateChange: true)
+    def ircode = state.OFFIRsend
+    if (!ircode) { ircode = state.OnIRsend }  // fallback: toggle
+    if (ircode) { EnviaComando(ircode) }
+    else { log.debug "off(): nenhum código IR disponível, suprimido" }
 }
 
 
@@ -375,16 +507,26 @@ def push(pushed) {
 
 //Botão #0 para dashboard
 def poweroff(){
-	sendEvent(name: "power", value: "off")
-    def ircode =  state.OFFIRsend
-    EnviaComando(ircode)    
+    sendEvent(name: "power", value: "off")
+    def ircode = state.OFFIRsend
+    if (!ircode) {
+        ircode = state.OnIRsend  // fallback: toggle
+        if (ircode) log.info "poweroff: usando OnIRsend como toggle fallback"
+    }
+    if (ircode) { EnviaComando(ircode) }
+    else { log.debug "poweroff: nenhum código IR disponível, suprimido" }
 }
 
 //Botão #1 para dashboard
 def poweron(){
-	sendEvent(name: "power", value: "on")
-    def ircode =  state.OnIRsend
-    EnviaComando(ircode)    
+    sendEvent(name: "power", value: "on")
+    def ircode = state.OnIRsend
+    if (!ircode) {
+        ircode = state.OFFIRsend  // fallback: toggle
+        if (ircode) log.info "poweron: usando OFFIRsend como toggle fallback"
+    }
+    if (ircode) { EnviaComando(ircode) }
+    else { log.debug "poweron: nenhum código IR disponível, suprimido" }
 }
 
 //Botão #2 para dashboard
