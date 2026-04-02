@@ -25,6 +25,7 @@
  *            1.1 - 26/1/2026 - Fixed Online Status for GW8. Added Version number to driver. Added Memory used in GW8 to status. 
  *            1.2 - 24/3/2026 - Fixed Postback. Fixed temperatures 24 and 25 Cool. Added on/off commands for Maker API. . 
  * 			  1.3 - 31/3/2026 - Added commands for Vetra integration feedback
+ *            1.4 - 01/4/2026 - Dropdown para selecionar controle remoto direto do ir.molsmart.com.br (sem precisar pegar URL manualmente)
 */
 
 metadata {
@@ -40,13 +41,19 @@ metadata {
 		attribute "supportedThermostatFanModes", "JSON_OBJECT"
 		attribute "supportedThermostatModes", "JSON_OBJECT"	  
 		attribute "hysteresis", "NUMBER"
+        attribute "remoteListStatus", "STRING"
+        attribute "Controle", "STRING"
+        attribute "TipoControle", "STRING"
+        attribute "Formato", "STRING"
+        attribute "driverVersion", "STRING"
 
       
 command "GetRemoteDATA"
 command "AtualizaDadosGW8"
 command "cleanvars"
 command "clearTemps"
-command "createTemps"      
+command "createTemps"
+command "FetchRemoteList"
 command "setSupportedThermostatFanModes", ["JSON_OBJECT"]
 command "setSupportedThermostatModes", ["JSON_OBJECT"]
 command "setTemperature", ["NUMBER"]   
@@ -121,6 +128,7 @@ command "healthCheckNow"
     @Field static final String DRIVER = "by TRATO"
     @Field static final String USER_GUIDE = "https://github.com/hhorigian/hubitat_MolSmart_GW8/tree/main/IR/AC(irweb)"
 	@Field static final String DRIVER_VERSION = "1.4"
+    @Field static final String REMOTE_LIST_URL = "http://ir.molsmart.com.br/controles.php?apikey=mol-ir-2f9a8c4e1b7d3k6j&type=ar"
 
 
     String fmtHelpInfo(String str) {
@@ -140,31 +148,48 @@ command "healthCheckNow"
 
 
   preferences {
-    input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false
         input name: "molIPAddress", type: "text", title: "MolSmart GW8 IP Address", submitOnChange: true, required: true, defaultValue: "192.168.1.100" 
         input name: "user", title:"Usuário", type: "string", required: true, defaultValue: "admin" 
         input name: "password", title:"Senha", type: "string", required: true, defaultValue: "12345678" 
 	    input name: "channel", title:"Canal Infravermelho (1-8). O Blaster é o 1", type: "string", required: true , defaultValue: "1"        
-        input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false
 
-        // === NOVO: Health Check ===
-        input name: "enableHealthCheck", type: "bool",   title: "Ativar verificação de online (HTTP /info)", defaultValue: true
-        input name: "healthCheckMins",   type: "number", title: "Intervalo do health check (min)", defaultValue: 30, range: "1..1440"
-                  
+        // === Seleção de Controle Remoto ===
+        input name: "irEmail", type: "string", title: "📧 Email do ir.molsmart.com.br (opcional — traz seus controles privados)", submitOnChange: false
+        input name: "remoteFilter", type: "string", title: "🔍 Filtro de controle (ex: Samsung) — salve para atualizar a lista abaixo", submitOnChange: false
+        
+        if (state.remoteOptions) {
+            input name: "selectedRemote", type: "enum", title: "📡 Selecione o Controle Remoto de AR", 
+                  options: state.remoteOptions, required: false, submitOnChange: false
+        } else {
+            input name: "selectedRemote", type: "enum", title: "📡 Selecione o Controle Remoto de AR (salve para carregar a lista)", 
+                  options: ["---":"Salve as configurações para carregar..."], required: false
+        }
+
+        // === URL manual (opcional, sobrepõe o dropdown se preenchida) ===
+        input name: "webserviceurl", title:"URL Manual do Controle (opcional — sobrepõe a seleção acima)", type: "string"
+
         //help guide
         input name: "UserGuide", type: "hidden", title: fmtHelpInfo("Manual do Driver") 
         input name: "SiteIR", type: "hidden", title: fmtHelpInfo1("Site IR MolSmart") 
-        input name: "webserviceurl", title:"URL Do Controle Remoto", type: "string"
+        input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false
 
   }   
   
 
 
-def GetRemoteDATA()
+def GetRemoteDATA() { GetRemoteDATA(null) }
+
+def GetRemoteDATA(String urlOverride)
 {
-  
+    String targetUrl = urlOverride ?: settings.webserviceurl ?: state.lastRemoteUrl
+    if (!targetUrl) {
+        log.warn "GetRemoteDATA: nenhuma URL disponível"
+        return
+    }
+    state.lastRemoteUrl = targetUrl
+
     def params = [
-        uri: webserviceurl,
+        uri: targetUrl,
         contentType: "application/json"
     ]
     try {
@@ -177,7 +202,11 @@ sendEvent(name: "Controle", value: resp.data.name)
 sendEvent(name: "TipoControle", value: resp.data.type)   
 sendEvent(name: "Formato", value: resp.data.conversor)  
 log.info "Controle: " + resp.data.name
-log.info "TipoControle: " +     resp.data.type    
+log.info "TipoControle: " + resp.data.type
+// Persiste para reemitir no updated()
+state.savedControle     = resp.data.name
+state.savedTipoControle = resp.data.type
+state.savedFormato      = resp.data.conversor
                 
 state.encoding = resp.data.conversor			 		
 state.poweroff = resp.data.functions.function[0]
@@ -248,6 +277,98 @@ state.temp16 = resp.data.functions.function[19]
 
 
 
+
+// =====================================================================
+// DROPDOWN: Busca lista de controles públicos do ir.molsmart.com.br
+// =====================================================================
+
+def fetchRemoteList() {
+    // Limpa lista anterior antes de buscar
+    state.remoteOptions  = ["---":"Carregando..."]
+    state.remoteTokenMap = [:]
+    device.updateSetting("selectedRemote", [type: "enum", value: ""])
+    device.updateSetting("selectedRemote", [type: "enum", value: "", options: ["---":"Carregando..."]])
+    String listUrl = REMOTE_LIST_URL
+    if (settings.remoteFilter) {
+        listUrl += "&search=" + java.net.URLEncoder.encode(settings.remoteFilter.trim(), "UTF-8")
+    }
+    if (settings.irEmail) {
+        listUrl += "&email=" + java.net.URLEncoder.encode(settings.irEmail.trim(), "UTF-8")
+    }
+    log.info "Buscando lista de controles: ${listUrl}"
+
+    def params = [ uri: listUrl, contentType: "application/json", timeout: 10 ]
+    try {
+        httpGet(params) { resp ->
+            if (resp.success && resp.data?.controls) {
+                def controls = resp.data.controls
+
+                def tokenMap = [:]
+                def options  = [:]
+
+                // Públicos primeiro, depois privados — usando LinkedHashMap explícito
+                def publicControles  = controls.findAll { it.source?.toString() == "public" }
+                def privateControles = controls.findAll { it.source?.toString() == "user" }
+                def ordered = [] 
+                publicControles.each  { ordered << [name: it.name.toString(), token: it.token.toString(), prefix: "PUBLICO"] }
+                privateControles.each { ordered << [name: it.name.toString(), token: it.token.toString(), prefix: "PRIVADO"] }
+                ordered.each { item ->
+                    String lbl = "${item.prefix} - ${item.name}"
+                    tokenMap[lbl] = item.token
+                    options[lbl]  = lbl
+                }
+
+                state.remoteTokenMap = tokenMap
+                state.remoteOptions  = options
+
+                int userCount   = resp.data.user_count   ?: 0
+                int publicCount = resp.data.public_count ?: controls.size()
+                log.info "Lista carregada: ${userCount} meus + ${publicCount} públicos"
+                sendEvent(name: "remoteListStatus", value: "${userCount} meus + ${publicCount} públicos")
+
+                device.updateSetting("selectedRemote", [type: "enum", value: settings.selectedRemote ?: ""])
+
+                // Aplica o controle selecionado (ignora divisores)
+                if (settings.selectedRemote && 
+                    settings.selectedRemote != "---" &&
+                    !settings.selectedRemote.startsWith("---")) {
+                    applySelectedRemote()
+                }
+
+            } else {
+                log.warn "fetchRemoteList: resposta vazia ou sem controls"
+            }
+        }
+    } catch (Exception e) {
+        log.warn "fetchRemoteList falhou: ${e.message}"
+    }
+}
+
+def applySelectedRemote() {
+    String selected = settings.selectedRemote
+    if (!selected || selected == "---") return
+
+    def tokenMap = state.remoteTokenMap
+    if (!tokenMap || !tokenMap.containsKey(selected)) {
+        log.warn "applySelectedRemote: '${selected}' não está na lista atual (filtro mudou?). Limpando seleção."
+        device.updateSetting("selectedRemote", [type: "enum", value: ""])
+        return
+    }
+
+    String token = tokenMap[selected]
+    String url   = "https://molsmart-integration.web.app/controle-integration?token=${token}"
+
+    log.info "Aplicando controle '${selected}' → token=${token}"
+
+    // Limpa URL manual para não conflitar com o dropdown
+    device.updateSetting("webserviceurl", [type: "string", value: ""])
+
+    // Passa a URL direto — não depende de updateSetting ser síncrono
+    GetRemoteDATA(url)
+}
+
+// =====================================================================
+
 def cleanvars()  //Usada para limpar todos os states e controles aprendidos. 
 {
 //state.remove()
@@ -285,14 +406,18 @@ def updated()
 {  
     log.debug "updated()"
 	initialize()
-    AtualizaDadosGW8()   
-    off()
+    AtualizaDadosGW8()
 	if (logEnable) runIn(1800,logsOff)
     sendEvent(name: "driverVersion", value: DRIVER_VERSION)
 	if (!device.currentValue("gw8Online")) sendEvent(name:"gw8Online", value:"unknown")    
-    
-    
-    
+
+    // Reemite atributos persistidos do controle remoto
+    if (state.savedControle)     sendEvent(name: "Controle",     value: state.savedControle)
+    if (state.savedTipoControle) sendEvent(name: "TipoControle", value: state.savedTipoControle)
+    if (state.savedFormato)      sendEvent(name: "Formato",      value: state.savedFormato)
+
+    // === Carrega lista de controles e aplica o selecionado (dentro do callback) ===
+    fetchRemoteList()
 }
 
 
@@ -309,7 +434,6 @@ def initialize() {
 	}
     state.currentip = ""  
 	setdefaults()
-    off()
 	if (!device.currentValue("gw8Online")) sendEvent(name:"gw8Online", value:"unknown")     
     sendEvent(name: "driverVersion", value: DRIVER_VERSION)
     
@@ -573,9 +697,16 @@ def poweroff(){
         sendEvent(name: "temperature", value: null)
     }
 
-	def ircode =  state.poweroff    
-    EnviaComando(ircode)    
-	
+	def ircode = state.poweroff
+    if (!ircode) {
+        ircode = state.onoff   // fallback: toggle on/off
+        if (ircode) log.info "poweroff: usando onoff (toggle) como fallback"
+    }
+    if (ircode) {
+        EnviaComando(ircode)
+    } else {
+        log.debug "poweroff: nenhum código IR disponível, suprimido"
+    }
 }
 
 //Botão #1 para dashboard
@@ -587,9 +718,13 @@ def poweron(){
     sendEvent(name: "switch", value: "on")
     sendEvent(name: "thermostatOperatingState", value: (lastMode == "heat") ? "heating" : "cooling")
 
-    def ircode =  state.poweron
-    EnviaComando(ircode)   
-
+    def ircode = state.poweron
+    if (!ircode) {
+        ircode = state.onoff   // fallback: toggle on/off
+        if (ircode) log.info "poweron: usando onoff (toggle) como fallback"
+        else { log.warn "poweron: nenhum código IR disponível"; return }
+    }
+    EnviaComando(ircode)
 }
 
 //Botão #2 para dashboard
@@ -992,19 +1127,43 @@ def io(){
 //Botão #48 para dashboard
 def tempup(){
     sendEvent(name: "action", value: "tempup")
-    def ircode =  state.tempup
-    EnviaComando(ircode)
-    log.info "Sent command action =  Temp + " 	
-	
+    def ircode = state.tempup
+    if (ircode) {
+        EnviaComando(ircode)
+        log.info "tempup: usando código tempup"
+    } else {
+        // Fallback: envia temperatura fixa = atual + 1
+        int current = (device.currentValue("coolingSetpoint") ?: device.currentValue("thermostatSetpoint") ?: 22) as int
+        int target  = Math.min(current + 1, 30)
+        def fixedCode = state["temp${target}"]
+        if (fixedCode) {
+            EnviaComando(fixedCode)
+            log.info "tempup: fallback para temp${target} (código fixo)"
+        } else {
+            log.warn "tempup: sem código tempup nem temp${target} disponível"
+        }
+    }
 }
 
 //Botão #49 para dashboard
 def tempdown(){
     sendEvent(name: "action", value: "tempdown")
-    def ircode =  state.tempdown
-    EnviaComando(ircode)
-    log.info "Sent command action =  temp - " 	
-	
+    def ircode = state.tempdown
+    if (ircode) {
+        EnviaComando(ircode)
+        log.info "tempdown: usando código tempdown"
+    } else {
+        // Fallback: envia temperatura fixa = atual - 1
+        int current = (device.currentValue("coolingSetpoint") ?: device.currentValue("thermostatSetpoint") ?: 22) as int
+        int target  = Math.max(current - 1, 16)
+        def fixedCode = state["temp${target}"]
+        if (fixedCode) {
+            EnviaComando(fixedCode)
+            log.info "tempdown: fallback para temp${target} (código fixo)"
+        } else {
+            log.warn "tempdown: sem código tempdown nem temp${target} disponível"
+        }
+    }
 }
 
 //Botão #50 para dashboard
