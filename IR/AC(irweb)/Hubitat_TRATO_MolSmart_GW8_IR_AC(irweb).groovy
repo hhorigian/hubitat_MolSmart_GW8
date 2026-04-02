@@ -685,9 +685,10 @@ private void updateDisplayTempForLastMode(String prevMode = null) {
 //Botão #0 para dashboard
 def poweroff(){
     log.debug "Thermostat turned off"
-    sendEvent(name: "thermostatMode", value: "off")
-    sendEvent(name: "airConOperationMode", value: "off")
-    sendEvent(name: "switch", value: "off")
+    sendEvent(name: "switch",                 value: "off")
+    sendEvent(name: "airConOperationMode",    value: "Off")
+    sendEvent(name: "thermostatMode",         value: "off")
+    sendEvent(name: "currentJobMode",         value: "OFF")
     sendEvent(name: "thermostatOperatingState", value: "idle")
 
     def last = device.currentValue("heatingSetpoint") ?: device.currentValue("coolingSetpoint")
@@ -711,16 +712,22 @@ def poweroff(){
 
 //Botão #1 para dashboard
 def poweron(){
-    def lastMode = state.lastRunningMode ?: "cool"
-    sendEvent(name: "thermostatMode", value: lastMode, descriptionText: "Thermostat Mode set to ${lastMode}", isStateChange: true)
-    sendEvent(name: "airConOperationMode", value: lastMode)
-    sendEvent(name: "currentJobMode", value: lastMode)
-    sendEvent(name: "switch", value: "on")
+    // Nunca usar "auto" — Vetra só entende cool/heat
+    // Se lastRunningMode for auto ou null, assume cool
+    String lastMode = state.lastRunningMode ?: "cool"
+    if (lastMode == "auto" || lastMode == "off") lastMode = "cool"
+
+    String jobMode = lastMode.toUpperCase()   // COOL ou HEAT para Vetra
+
+    sendEvent(name: "switch",                 value: "on")
+    sendEvent(name: "airConOperationMode",    value: "On")
+    sendEvent(name: "thermostatMode",         value: lastMode,  isStateChange: true)
+    sendEvent(name: "currentJobMode",         value: jobMode)
     sendEvent(name: "thermostatOperatingState", value: (lastMode == "heat") ? "heating" : "cooling")
 
     def ircode = state.poweron
     if (!ircode) {
-        ircode = state.onoff   // fallback: toggle on/off
+        ircode = state.onoff
         if (ircode) log.info "poweron: usando onoff (toggle) como fallback"
         else { log.warn "poweron: nenhum código IR disponível"; return }
     }
@@ -745,8 +752,8 @@ def auto(){
 //Botão #3 para dashboard
 def heat(){
     sendEvent(name: "thermostatMode", value: "heat")
-    sendEvent(name: "airConOperationMode", value: "heat")
-    sendEvent(name: "currentJobMode", value: "heat")
+    sendEvent(name: "airConOperationMode", value: "On")
+    sendEvent(name: "currentJobMode", value: "HEAT")
     sendEvent(name: "switch", value: "on")
     //setThermostatMode("heat")    
     sendEvent(name: "thermostatOperatingState", value: "heating")    
@@ -765,8 +772,8 @@ def heat(){
 //Botão #4 para dashboard
 def cool(){
     sendEvent(name: "thermostatMode", value: "cool")
-    sendEvent(name: "airConOperationMode", value: "cool")
-    sendEvent(name: "currentJobMode", value: "cool")
+    sendEvent(name: "airConOperationMode", value: "On")
+    sendEvent(name: "currentJobMode", value: "COOL")
     sendEvent(name: "switch", value: "on")
     //setThermostatMode("cool")
     sendEvent(name: "thermostatOperatingState", value: "cooling")    
