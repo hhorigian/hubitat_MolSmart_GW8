@@ -4,7 +4,7 @@
  "version":"1.5",
  "minimumHEVersion":"2.3.7.100",
  "dateReleased":"2026-04-02",
- "releaseNotes":"",
+ "releaseNotes":"Agora é possível selecionar o Nome/Modelo do controle remoto e trazer os Códigos IR direto do ir.molsmart.com.br",
  "drivers": [
   {
      "id":"6d4b9580-2770-425f-b384-b6e61424e1b1",
