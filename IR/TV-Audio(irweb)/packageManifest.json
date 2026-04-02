@@ -1,9 +1,9 @@
 {
  "packageName":"MolSmart - GW8 - TV e Audio(irweb)",
  "author":"VH",
- "version":"1.4",
+ "version":"1.5",
  "minimumHEVersion":"2.3.7.100",
- "dateReleased":"2026-03-11",
+ "dateReleased":"2026-04-02",
  "releaseNotes":"",
  "drivers": [
   {
