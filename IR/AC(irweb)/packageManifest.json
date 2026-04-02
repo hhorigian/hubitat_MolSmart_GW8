@@ -1,7 +1,7 @@
 {
  "packageName":"MolSmart - GW8 - AC (irweb)",
  "author":"VH",
- "version":"1.5",
+ "version":"1.4",
  "minimumHEVersion":"2.3.7.100",
  "dateReleased":"2026-04-02",
   "releaseNotes":"Agora é possível selecionar o Nome/Modelo do controle remoto e trazer os Códigos IR direto do ir.molsmart.com.br",
