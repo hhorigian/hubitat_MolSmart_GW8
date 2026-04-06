@@ -1,9 +1,9 @@
 {
  "packageName":"MolSmart GW8-RF",
  "author":"VH",
- "version":"1.4",
+ "version":"1.5",
  "minimumHEVersion":"2.4.1.151",
- "dateReleased":"2026-03-11",
+ "dateReleased":"2026-04-06",
  "releaseNotes":"Fixed Callback, updated child names to reflect label",
  "apps": [
   {
