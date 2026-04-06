@@ -26,13 +26,14 @@
  *        1.2 - 27/1/2026 - Added Command: refreshRemoteList, List GW8 Remote Controls. 
  *        1.3 - 19/2/2026 - Fixed 100% open / Closed without waiting for percentage. Force Open and Force Close.  
  *        1.4 - 11/3/2026 - Added PostCallback to know if command was sent successfull via http. Changed names for childs autocreate pickup label name. 
+ *        1.5 - 11/3/2026 - Added Open/Close commands for Vetra compat.
 
  */
 
 import groovy.transform.Field
 
 @Field static final List<String> ONLINE_ENUM = ["online","offline","unknown"]
-@Field static final String DRIVER_VERSION = "1.4"
+@Field static final String DRIVER_VERSION = "1.5"
 
 
 metadata {
@@ -55,6 +56,8 @@ metadata {
     command "Up"
     command "Down"
     command "Stop"     
+	command "open"
+    command "close"      
 
     // NOVOS comandos (sob demanda)
     command "healthCheckNow"
@@ -664,4 +667,3 @@ def logsOff() {
 }
 
 private logDebug(msg) { if (settings?.debugOutput == true)  log.debug "${device.displayName} ${msg}" }
-
