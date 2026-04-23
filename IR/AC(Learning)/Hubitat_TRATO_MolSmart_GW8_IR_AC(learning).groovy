@@ -40,6 +40,9 @@ metadata {
         command "initialize"
         command "cleanvars"
         command "healthCheckNow"
+        command "on"
+        command "off"
+        command "stop"
 
         // Atributos de saúde/conectividade
         attribute "gw8Online", "STRING"
@@ -184,6 +187,10 @@ def off() {
     sendEvent(name: "thermostatOperatingState", value: "idle")
     EnviaComando([pw: 0, md: -1, t: currentTemp(), s: 0, v: 0])
     log.info "AC desligado"
+}
+
+def stop() {    
+    off()    
 }
 
 def auto() {
