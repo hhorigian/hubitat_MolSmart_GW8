@@ -16,7 +16,7 @@
  *            --- Driver para GW8 - IR Universal Web ---
  *            V.1. 11/11/2025 
  *            1.1 - 26/1/2026 - Fixed Online Status for GW8. Added Version number to driver. Added Memory used in GW8 to status. 
-
+ *            1.2 - 30/4/2026 - Added IR Channel number to Preferences Input and to HTTP command
  */
 metadata {
   definition (name: "MolSmart - GW8 - IR Universal(Learning)", namespace: "TRATO", author: "VH", vid: "generic-contact") {
@@ -93,6 +93,7 @@ metadata {
         input name: "molIPAddress", type: "text", title: "MolSmart GW8 IP Address", submitOnChange: true, required: true, defaultValue: "192.168.1.100" 
     	input name: "user", title:"Usuário", type: "string", required: true, defaultValue: "admin" 
 	    input name: "password", title:"Senha", type: "string", required: true, defaultValue: "12345678" 
+        input name: "channel", title:"Canal IR", type: "string", required: true
     	input name: "cId", title:"Control ID (pego no WebAdmin)", type: "string", required: true        
         input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false
         input name: "debugOutput", type: "bool", title: "Habilitar Log", defaultValue: false           
@@ -387,8 +388,9 @@ private String buildFullUrl(button) {
     def vc   = settings.password
     def cid  = settings.cId
     def rcid = (settings.rcId ?: "61")
+    def chn =  settings.channel
         
-        return "http://${ip}/control" + "?cId=${cid}&pwd=${vc}&rcId=${rcid}&state=${button}&user=${sn}"	
+        return "http://${ip}/control" + "?cId=${cid}&pwd=${vc}&rcId=${rcid}&state=${button}&user=${sn}&c=${chn}"	
     
 }             
 
