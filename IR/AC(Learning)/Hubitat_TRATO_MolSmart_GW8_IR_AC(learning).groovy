@@ -14,7 +14,9 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *            --- Driver para GW8 - AC - Salvos no GW8 (biblioteca ou learning)
- *            V.1.0 25/03/2026 - V1
+ *            1.0 - 25/03/2026 - V1
+ *            1.2 - 6/5/2026 - Added IR Channel number to Preferences Input and to HTTP command
+
  */
 
 
@@ -70,6 +72,8 @@ preferences {
     input name: "password",      type: "string", title: "Senha",                              required: true, defaultValue: "12345678"
     input name: "cId",           type: "string", title: "Control ID (salvo no GW8)",          required: true
     input name: "defaultTemp",   type: "number", title: "Temperatura padrão (°C)",            defaultValue: 24, range: "16..30"
+    input name: "channel", title:"Canal IR", type: "string", required: true
+    
     input name: "logEnable",     type: "bool",   title: "Enable debug logging",               defaultValue: false
     input name: "timeoutSec",    type: "number", title: "HTTP timeout (segundos)",            defaultValue: 7, range: "3..30"
     // Health Check
@@ -126,7 +130,8 @@ def AtualizaDadosgw8() {
     state.user       = settings.user
     state.password   = settings.password
     state.cId        = settings.cId
-    log.info "Dados GW8 atualizados: ${state.currentip} | user=${state.user} | cId=${state.cId}"
+    state.channel    = settings.channel
+    log.info "Dados GW8 atualizados: ${state.currentip} | user=${state.user} | cId=${state.cId} | channel =${state.channel}"
 }
 
 
@@ -146,6 +151,7 @@ private String buildFullUrl(Map p) {
     def cid = settings.cId
     def usr = settings.user
     def pwd = settings.password
+    def chn = settings.channel
 
     // Valores padrão para parâmetros não informados
     def pw  = (p.pw  != null) ? p.pw  : 1
@@ -159,7 +165,7 @@ private String buildFullUrl(Map p) {
                  "?cId=${cid}&rcId=52&state=2" +
                  "&t=${t}&pw=${pw}&md=${md}&s=${s}&v=${v}" +
                  "&tp=0&type=1&p=0&m=0&c=1" +
-                 "&user=${usr}&pwd=${pwd}"
+                 "&user=${usr}&pwd=${pwd}&c=${chn}"
 
     logDebug "buildFullUrl: ${url}"
     return url
@@ -396,6 +402,7 @@ def healthPoll() {
     Map params = [ uri: "http://${ip}/info", timeout: 5 ]
     try {
         asynchttpGet('healthPollCB', params, [t0: started])
+        log.info params
     } catch (e) {
         if (logEnable) log.warn "healthPoll falhou: ${e.message}"
     }
