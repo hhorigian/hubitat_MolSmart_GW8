@@ -14,7 +14,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *            --- Driver para GW8 - AC - Salvos no GW8 (biblioteca ou learning)
- *            1.0 - 25/03/2026 - V1
+ *            V.1.0 25/03/2026 - V1
  *            1.2 - 6/5/2026 - Added IR Channel number to Preferences Input and to HTTP command
 
  */
@@ -164,8 +164,8 @@ private String buildFullUrl(Map p) {
     String url = "http://${ip}/control" +
                  "?cId=${cid}&rcId=52&state=2" +
                  "&t=${t}&pw=${pw}&md=${md}&s=${s}&v=${v}" +
-                 "&tp=0&type=1&p=0&m=0&c=1" +
-                 "&user=${usr}&pwd=${pwd}&c=${chn}"
+                 "&tp=0&type=1&p=0&m=0&c=${chn}" +
+                 "&user=${usr}&pwd=${pwd}"
 
     logDebug "buildFullUrl: ${url}"
     return url
@@ -399,7 +399,7 @@ def healthPoll() {
     String ip = (settings.molIPAddress ?: "").trim()
     if (!ip) return
     Long started = now()
-    Map params = [ uri: "http://${ip}/info", timeout: 5 ]
+    Map params = [ uri: "http://${ip}/info?user=${settings.user}&pwd=${settings.password}", timeout: 5 ]
     try {
         asynchttpGet('healthPollCB', params, [t0: started])
         log.info params
