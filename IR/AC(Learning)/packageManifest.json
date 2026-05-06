@@ -1,10 +1,10 @@
 {
  "packageName":"MolSmart - GW8 - AC (learning)",
  "author":"VH",
- "version":"1.0",
+ "version":"1.2",
  "minimumHEVersion":"2.3.7.100",
- "dateReleased":"2026-03-27",
- "releaseNotes":"1.0 - First Version",
+ "dateReleased":"2026-05-6",
+ "releaseNotes":"1.2 - Added IR Channel parameter",
  "drivers": [
   {
      "id":"0073250b-c9f1-4aaa-9cf2-460cdfe6861d",
