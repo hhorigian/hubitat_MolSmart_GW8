@@ -27,13 +27,14 @@
  *        1.3 - 19/2/2026 - Fixed 100% open / Closed without waiting for percentage. Force Open and Force Close.  
  *        1.4 - 11/3/2026 - Added PostCallback to know if command was sent successfull via http. Changed names for childs autocreate pickup label name. 
  *        1.5 - 11/3/2026 - Added Open/Close commands for Vetra compat.
+ *        1.6 - 20/5/2026 - Fixed event storm: Groovy falsy-zero bug in sendPosition guard, tick() now stops when not moving, sendShadeEventForPos deduplicates via currentValue.
 
  */
 
 import groovy.transform.Field
 
 @Field static final List<String> ONLINE_ENUM = ["online","offline","unknown"]
-@Field static final String DRIVER_VERSION = "1.5"
+@Field static final String DRIVER_VERSION = "1.6"
 
 
 metadata {
@@ -235,6 +236,7 @@ private trackStart(String dir) {
 }
 
 private tick() {
+  if (!(state.moving in ["up","down"])) return
   def est = estimateNow()
   sendPosition(est)
   scheduleTick()
@@ -266,7 +268,7 @@ private Integer estimateNow() {
 
 private sendPosition(Integer pos) {
   pos = clamp(pos as int, 0, 100)
-  if (pos != (state.lastKnownPos ?: -1)) {
+  if (pos != (state.lastKnownPos != null ? (state.lastKnownPos as int) : -1)) {
     state.lastKnownPos = pos
     sendEvent(name:"position", value: pos)
     sendShadeEventForPos(pos)
@@ -295,7 +297,9 @@ private finalizeStop(Integer finalPos) {
 
 private sendShadeEventForPos(Integer pos) {
   String shade = (pos <= 0) ? "closed" : (pos >= 100 ? "open" : "partially open")
-  sendEvent(name:"windowShade", value: shade, isStateChange:true)
+  if (device.currentValue("windowShade") != shade) {
+    sendEvent(name:"windowShade", value: shade)
+  }
 }
 
 /* ======================= Envio HTTP — MANTIDO ======================= */
