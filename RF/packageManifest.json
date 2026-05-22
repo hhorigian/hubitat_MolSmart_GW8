@@ -1,10 +1,10 @@
 {
  "packageName":"MolSmart GW8-RF",
  "author":"VH",
- "version":"1.6",
+ "version":"1.7",
  "minimumHEVersion":"2.4.1.151",
- "dateReleased":"2026-05-20",
- "releaseNotes":"Fixed Events spam",
+ "dateReleased":"2026-05-22",
+ "releaseNotes":"Simplificado: removido slider/posição/tempo. Up/Open=1, Stop=2, Down/Close=3",
  "apps": [
   {
      "id":"1581aecf-c106-490b-81da-b24ff3fe02eb",
