@@ -18,6 +18,8 @@
  *        1.5 - 11/3/2026 - Added Open/Close commands for Vetra compat.
  *        1.6 - 20/5/2026 - Fixed event storm: Groovy falsy-zero bug in sendPosition guard, tick() now stops when not moving, sendShadeEventForPos deduplicates via currentValue.
  *        1.7 - 22/5/2026 - Simplificado: removido slider/posição/tempo. Up/Open=1, Stop=2, Down/Close=3.
+ *        1.8 - 18/6/2026 - Added stopPositionChange command for Vetra compat.
+
  */
 
 import groovy.transform.Field
@@ -41,6 +43,7 @@ metadata {
     command "Stop"
     command "open"
     command "close"
+    command "stopPositionChange"
 
     command "healthCheckNow"
     command "recreateButtons"
@@ -119,6 +122,11 @@ private initialize() {
 def up()    { EnviaComando(1) }
 def Up()    { EnviaComando(1) }
 def open()  { EnviaComando(1) }
+
+def stopPositionChange() {
+     stop()
+}
+
 
 def stop()  { EnviaComando(2) }
 def Stop()  { EnviaComando(2) }
