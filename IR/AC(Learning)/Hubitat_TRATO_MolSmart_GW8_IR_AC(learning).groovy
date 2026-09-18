@@ -16,7 +16,7 @@
  *            --- Driver para GW8 - AC - Salvos no GW8 (biblioteca ou learning)
  *            V.1.0 25/03/2026 - V1
  *            1.2 - 6/5/2026 - Added IR Channel number to Preferences Input and to HTTP command
-
+ *            1.3 - 19/9/2026 - Added switch capability to fix Vetra feedback
  */
 
 
@@ -26,6 +26,7 @@ metadata {
         capability "Sensor"
         capability "Temperature Measurement"
         capability "Thermostat"
+        capability "Switch"
 
         attribute "supportedThermostatFanModes", "JSON_OBJECT"
         attribute "supportedThermostatModes", "JSON_OBJECT"
@@ -346,6 +347,9 @@ def push(pushed) {
    ══════════════════════════════════════════════════════════════ */
 
 def EnviaComando(Map p) {
+    def pwVal = (p.pw != null) ? p.pw : 1
+    sendEvent(name: "switch", value: (pwVal == 1 ? "on" : "off"))
+    
     String fullUrl = buildFullUrl(p)
     log.info "EnviaComando URL: ${fullUrl}"
     Map params = [ uri: fullUrl, timeout: (settings.timeoutSec ?: 7) as int ]
