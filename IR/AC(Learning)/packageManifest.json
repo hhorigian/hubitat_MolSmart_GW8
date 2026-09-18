@@ -1,10 +1,10 @@
 {
  "packageName":"MolSmart - GW8 - AC (learning)",
  "author":"VH",
- "version":"1.2",
+ "version":"1.3",
  "minimumHEVersion":"2.3.7.100",
- "dateReleased":"2026-05-6",
- "releaseNotes":"1.2 - Added IR Channel parameter",
+ "dateReleased":"2026-09-19",
+ "releaseNotes":"1.3 - Added Switch capability to fix Vetra deedback",
  "drivers": [
   {
      "id":"0073250b-c9f1-4aaa-9cf2-460cdfe6861d",
