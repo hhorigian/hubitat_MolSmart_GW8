@@ -1,15 +1,15 @@
 {
  "packageName":"MolSmart GW8-RF",
  "author":"VH",
- "version":"1.8",
+ "version":"3.0.0",
  "minimumHEVersion":"2.4.1.151",
- "dateReleased":"2026-6-18",
- "releaseNotes":"Added stopPositionChange command for Vetra compat",
+ "dateReleased":"2026-11-03",
+ "releaseNotes":"TS-3.0.0 (TecnoSimples) — AC e cortinas só mudam de estado com a confirmação do GW8, Alexa controla o ar como termostato, senha fora dos logs, verificação de online que não morre e cortinas RF que não duplicam ao trocar o IP; quem já tem o pacote GW8-RF não marque o RF no pacote do AC. / AC and blinds only change state once the GW8 confirms, Alexa controls the AC as a thermostat, password kept out of logs, an online check that never dies and RF blinds that no longer duplicate on IP change; if you already have the GW8-RF package, do not tick RF in the AC package.",
  "apps": [
   {
      "id":"1581aecf-c106-490b-81da-b24ff3fe02eb",
      "name":"MolSmart GW8 Remote Importer - Cortina RF",
-     "location":"https://raw.githubusercontent.com/hhorigian/hubitat_MolSmart_GW8/refs/heads/main/RF/Hubitat_TRATO_MolSmart_GW8_RF_APP.groovy",
+     "location":"https://raw.githubusercontent.com/hhorigian/hubitat_MolSmart_GW8/main/RF/Hubitat_TRATO_MolSmart_GW8_RF_APP.groovy",
      "required":true,
      "oauth":false,
      "primary":true
@@ -19,7 +19,7 @@
   {
      "id":"76d618fd-e894-4b55-ba50-741b77285eda",
      "name":"MolSmart GW8-RF",
-     "location":"https://raw.githubusercontent.com/hhorigian/hubitat_MolSmart_GW8/refs/heads/main/RF/Hubitat_TRATO_MolSmart_GW8_RF.groovy",
+     "location":"https://raw.githubusercontent.com/hhorigian/hubitat_MolSmart_GW8/main/RF/Hubitat_TRATO_MolSmart_GW8_RF.groovy",
      "required":true
   }
   ]
