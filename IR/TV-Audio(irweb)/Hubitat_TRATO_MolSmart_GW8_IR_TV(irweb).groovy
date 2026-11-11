@@ -21,6 +21,7 @@
 *            1.3 - 10/3/2026 - Added appOpenByName command to open apps by name (Netflix, YouTube and Amazon Prime).
 *            1.4 - 11/3/2026 - Fixed Callback, added HTTP Last Result to know status of commands sent. 
  *           1.5 - 01/4/2026 - Dropdown para selecionar controle remoto direto do ir.molsmart.com.br (TV e Audio).
+ *           1.6 - 11/11/2026 - Fix no envio do HEX (pronto): espaços do código Pronto não eram codificados, quebrando a requisição HTTP para o GW8 e causando erro 408 (timeout). Agora os espaços são enviados como "+", igual ao navegador faz automaticamente.
  *
  *
  */
@@ -141,7 +142,7 @@ command "fastForward"
 
     @Field static final String DRIVER1 = "IR MolSmart"
     @Field static final String USER_GUIDE1 = "https://ir.molsmart.com.br/"
-	@Field static final String DRIVER_VERSION = "1.5"
+	@Field static final String DRIVER_VERSION = "1.6"
     @Field static final String REMOTE_LIST_URL = "http://ir.molsmart.com.br/controles.php?apikey=mol-ir-2f9a8c4e1b7d3k6j"
 
 
@@ -939,11 +940,14 @@ private String buildFullUrl(button) {
     if (state.encoding == "sendir") {   //if the remote is SendIR(Global Cache) uses one URL, if it's HEX format, uses another URL.         
         return "http://${ip}/control?user=${sn}&pwd=${vc}&gc=${button}&c=${ch}"	        
     }
-    if (state.encoding == "HEX") {   //if the remote is SendIR(Global Cache) uses one URL, if it's HEX format, uses another URL.         
-        return "http://${ip}/control?user=${sn}&pwd=${vc}&gc=${button}&c=${ch}"	        
+    if (state.encoding == "HEX") {   //if the remote is SendIR(Global Cache) uses one URL, if it's HEX format, uses another URL.
+        return "http://${ip}/control?user=${sn}&pwd=${vc}&gc=${button}&c=${ch}"
     } else {
-         return "http://${ip}/control?user=${sn}&pwd=${vc}&pronto=${button}&c=${ch}&r=${repeat}"		      
-    }             
+        // Pronto HEX codes are space-separated; unencoded spaces break the HTTP request line.
+        // GW8 expects them encoded as "+", like the browser does automatically.
+        String encodedButton = button?.toString()?.trim()?.replaceAll(" ", "+")
+        return "http://${ip}/control?user=${sn}&pwd=${vc}&pronto=${encodedButton}&c=${ch}&r=${repeat}"
+    }
 }
 
 
