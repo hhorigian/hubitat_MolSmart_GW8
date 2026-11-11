@@ -1,10 +1,10 @@
 {
  "packageName":"MolSmart - GW8 - AC (irweb)",
  "author":"VH",
- "version":"1.4",
+ "version":"1.5",
  "minimumHEVersion":"2.3.7.100",
- "dateReleased":"2026-04-02",
-  "releaseNotes":"Agora é possível selecionar o Nome/Modelo do controle remoto e trazer os Códigos IR direto do ir.molsmart.com.br",
+ "dateReleased":"2026-11-11",
+  "releaseNotes":"Fix no envio do HEX (pronto): espaços do código Pronto agora são codificados como \"+\", corrigindo erro 408 (timeout) ao enviar comandos do Hubitat para o GW8.",
  "drivers": [
   {
      "id":"0073250b-c9f1-4aaa-9cf2-460cbae6661d",

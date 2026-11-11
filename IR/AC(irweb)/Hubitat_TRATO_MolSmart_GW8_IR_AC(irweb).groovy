@@ -26,6 +26,7 @@
  *            1.2 - 24/3/2026 - Fixed Postback. Fixed temperatures 24 and 25 Cool. Added on/off commands for Maker API. . 
  * 			  1.3 - 31/3/2026 - Added commands for Vetra integration feedback
  *            1.4 - 01/4/2026 - Dropdown para selecionar controle remoto direto do ir.molsmart.com.br (sem precisar pegar URL manualmente)
+ *            1.5 - 11/11/2026 - Fix no envio do HEX (pronto): espaços do código Pronto não eram codificados, quebrando a requisição HTTP para o GW8 e causando erro 408 (timeout). Agora os espaços são enviados como "+", igual ao navegador faz automaticamente.
 */
 
 metadata {
@@ -127,7 +128,7 @@ command "healthCheckNow"
     import groovy.json.JsonOutput
     @Field static final String DRIVER = "by TRATO"
     @Field static final String USER_GUIDE = "https://github.com/hhorigian/hubitat_MolSmart_GW8/tree/main/IR/AC(irweb)"
-	@Field static final String DRIVER_VERSION = "1.4"
+	@Field static final String DRIVER_VERSION = "1.5"
     @Field static final String REMOTE_LIST_URL = "http://ir.molsmart.com.br/controles.php?apikey=mol-ir-2f9a8c4e1b7d3k6j&type=ar"
 
 
@@ -1477,15 +1478,17 @@ private String buildFullUrl(button) {
     def ch = state.channel
     def repeat = settings.repeatSendHEX 
 
-    if (state.encoding == "sendir") {   //if the remote is SendIR(Global Cache) uses one URL, if it's HEX format, uses another URL. 
-        
-         return "http://${ip}/control?user=${sn}&pwd=${vc}&gc=${button}&c=${ch}"	    
-        
+    if (state.encoding == "sendir") {   //if the remote is SendIR(Global Cache) uses one URL, if it's HEX format, uses another URL.
+
+         return "http://${ip}/control?user=${sn}&pwd=${vc}&gc=${button}&c=${ch}"
+
     } else {
+        // Pronto HEX codes are space-separated; unencoded spaces break the HTTP request line.
+        // GW8 expects them encoded as "+", like the browser does automatically.
+        String encodedButton = button?.toString()?.trim()?.replaceAll(" ", "+")
+        return "http://${ip}/control?user=${sn}&pwd=${vc}&pronto=${encodedButton}&c=${ch}&r=${repeat}"
 
-        return "http://${ip}/control?user=${sn}&pwd=${vc}&pronto=${button}&c=${ch}&r=${repeat}"	        
-
-    }             
+    }
 }
 
  
